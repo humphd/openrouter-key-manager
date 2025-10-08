@@ -1,0 +1,38 @@
+{
+  "name": "openrouter-key-manager",
+  "version": "1.0.0",
+  "description": "A Node.js CLI tool for managing OpenRouter.ai API keys for students.",
+  "type": "module",
+  "bin": {
+    "openrouter-key-manager": "./dist/bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -fr dist",
+    "prettier": "prettier . --write",
+    "format": "pnpm prettier",
+    "prettier-check": "prettier . --check",
+    "format-check": "pnpm prettier-check",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "BSD-2-Clause",
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.1",
+    "csv-parse": "^6.1.0",
+    "inquirer": "^12.9.6",
+    "minimatch": "^10.0.3"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.1",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^24.7.0",
+    "oxlint": "^1.21.0",
+    "prettier": "3.6.2",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "yoavbls.pretty-ts-errors",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}

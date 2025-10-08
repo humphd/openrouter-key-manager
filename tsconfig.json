@@ -1,0 +1,15 @@
+{
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "include": ["src/**/*", "bin/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
+  }
+}
