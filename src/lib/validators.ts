@@ -29,8 +29,22 @@ export function validateDate(date: string): void {
     throw new ValidationError(`Invalid date format: ${date}. Use YYYY-MM-DD`);
   }
 
-  const parsed = new Date(date);
+  // Parse the date string manually to avoid timezone issues
+  const [year, month, day] = date.split("-").map(Number);
+
+  // Create date in UTC to avoid timezone issues
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
   if (isNaN(parsed.getTime())) {
+    throw new ValidationError(`Invalid date: ${date}`);
+  }
+
+  // Check if the date components match (catches invalid dates like 2025-02-30)
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() + 1 !== month ||
+    parsed.getUTCDate() !== day
+  ) {
     throw new ValidationError(`Invalid date: ${date}`);
   }
 }

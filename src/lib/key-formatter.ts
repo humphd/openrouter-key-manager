@@ -7,7 +7,15 @@ export function generateKeyName(
   const tagString = tags
     .map((tag) => tag.trim().replace(/\s+/g, "_"))
     .join(" ");
-  return `${email} ${tagString} ${date}`;
+
+  // Only add space before tags if there are tags
+  const parts = [email];
+  if (tagString) {
+    parts.push(tagString);
+  }
+  parts.push(date);
+
+  return parts.join(" ");
 }
 
 export function parseKeyName(keyName: string): {

@@ -141,3 +141,8 @@ vite.config.ts.timestamp-*
 .DS_Store
 
 report-*.html
+
+coverage/
+.vitest/
+
+*.csv
