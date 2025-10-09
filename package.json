@@ -17,8 +17,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:watch": "vitest"
   },
   "license": "BSD-2-Clause",
   "packageManager": "pnpm@10.15.0",
