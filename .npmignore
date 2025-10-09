@@ -1,0 +1,12 @@
+src/
+**/*.test.js
+**/*.test.d.ts
+**/*.test.js.map
+**/*.test.d.ts.map
+**/*.spec.js
+**/*.spec.d.ts
+**/*.spec.js.map
+**/*.spec.d.ts.map
+tsconfig.json
+vitest.config.ts
+.github/

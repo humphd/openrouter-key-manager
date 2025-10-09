@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  pnpm-publish:
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Prepare environment
+        uses: ./.github/actions/prepare
+
+      - name: Check if version changed
+        id: check
+        uses: PostHog/check-package-version@v2
+
+      - name: Run tests
+        if: steps.check.outputs.is-new-version == 'true'
+        run: |
+          pnpm run typecheck
+          pnpm run lint
+          pnpm run test
+
+      - name: Build and publish
+        if: steps.check.outputs.is-new-version == 'true'
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          pnpm build
+          pnpm publish --no-git-checks --access public
+        shell: bash
