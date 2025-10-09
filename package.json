@@ -1,8 +1,14 @@
 {
   "name": "openrouter-key-manager",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "A Node.js CLI tool for managing OpenRouter.ai API keys for students.",
   "type": "module",
+  "author": "David Humphrey <david.andrew.humphrey@gmail.com>",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "openrouter-key-manager": "./dist/bin/cli.js"
   },
