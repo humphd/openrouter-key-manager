@@ -1,7 +1,6 @@
 # OpenRouter Key Manager
 
-A Node.js CLI tool for managing OpenRouter.ai API keys with flexible tagging
-and bulk operations.
+A Node.js CLI tool for [creating and managing](https://openrouter.ai/docs/features/provisioning-api-keys) [OpenRouter.ai](https://openrouter.ai/) API keys with flexible tagging and bulk operations.
 
 ## Features
 
@@ -25,12 +24,11 @@ npx openrouter-key-manager@latest [command] [options]
 
 ## Prerequisites
 
-You need an OpenRouter.ai API Provisioning Key. Get one from your
-[OpenRouter.ai account dashboard](https://openrouter.ai/settings/keys).
+You need an **OpenRouter.ai Provisioning API Key**. Get one from your [OpenRouter.ai account dashboard](https://openrouter.ai/settings/keys).
 
 ## Authentication
 
-Provide your OpenRouter.ai API Provisioning Key in one of two ways:
+Provide your **OpenRouter.ai Provisioning API Key** in one of two ways:
 
 **Environment Variable (recommended):**
 
@@ -48,8 +46,7 @@ openrouter-key-manager --provisioning-key your_key_here [command]
 
 ### 1. Create API Keys for Multiple Users
 
-Prepare a CSV file with user information, including their `email` and one or
-more `tag`s:
+Prepare a CSV file with user information, including their `email` and one or more `tag`s (every column after `email` is considered a tag):
 
 **accounts.csv:**
 
@@ -60,14 +57,13 @@ bob@example.com,CCP555,student
 carol@example.com,CCP555,professor
 ```
 
-Create keys with a spending limit per user (limits are $USD):
+Create keys for each user with the specified spending limit (limits are per user and in US dollars):
 
 ```bash
 openrouter-key-manager bulk-create --limit 15 accounts.csv
 ```
 
-This will generate API Keys for all users and create a CSV file (e.g.,
-`CCP555-student-2024-01-15.csv`) containing the newly created keys:
+This will generate API Keys for all users in `accounts.csv` and create a CSV file (e.g., `CCP555-student-2024-01-15.csv`) containing the newly created keys:
 
 ```csv
 name,key,hash
@@ -266,11 +262,9 @@ bob@example.com CCP555 student 2024-01-15,sk-or-v1-def456...,hash-def456...
 - **key**: The actual API key to distribute to users
 - **hash**: The key's unique identifier for management operations
 
-**Default Filename:** `{tags}-{date}.csv` (e.g.,
-`CCP555-student-2024-01-15.csv`)
+**Default Filename:** `{tags}-{date}.csv` (e.g., `CCP555-student-2024-01-15.csv`)
 
-**Security Note:** This CSV contains actual API keys. Store it securely and
-distribute keys to users through secure channels.
+**Security Note:** This CSV contains actual API keys. Store it securely and distribute keys to users through secure channels.
 
 ---
 
@@ -350,8 +344,7 @@ Examples:
 
 ### `disable`
 
-Disable one or more API keys. Disabled keys cannot be used but can be
-re-enabled later.
+Disable one or more API keys. Disabled keys cannot be used but can be re-enabled later.
 
 ```bash
 openrouter-key-manager disable [options]
@@ -462,9 +455,7 @@ openrouter-key-manager bulk-delete [options] <file>
 
 **Input File Format:**
 
-You can use the CSV file created by `create` or `bulk-create`, or create a
-simple CSV with just `name` and `hash` columns (i.e., the `key` itself is
-not needed):
+You can use the CSV file created by `create` or `bulk-create`, or create a simple CSV with just `name` and `hash` columns (i.e., the `key` itself is not needed):
 
 **CSV (from bulk-create):**
 
@@ -497,8 +488,7 @@ bob@example.com CCP555 student 2024-01-15,hash-def456...
 ]
 ```
 
-**Note:** The `bulk-delete` command only needs the `name` and `hash` columns.
-If your CSV has additional columns (like `key`), they will be ignored.
+**Note:** The `bulk-delete` command only needs the `name` and `hash` columns. If your CSV has additional columns (like `key`), they will be ignored.
 
 **Examples:**
 
