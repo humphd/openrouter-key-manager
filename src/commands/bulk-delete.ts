@@ -17,7 +17,7 @@ interface GlobalOptions {
 export async function bulkDeleteCommand(
   filePath: string,
   options: BulkDeleteOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
@@ -25,7 +25,7 @@ export async function bulkDeleteCommand(
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   console.error(chalk.blue(`Found ${keys.length} key(s) in ${filePath}\n`));
@@ -75,7 +75,7 @@ export async function bulkDeleteCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to delete ${key.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to delete ${key.name}: ${errorMessage}`),
       );
     }
   }

@@ -20,7 +20,7 @@ interface GlobalOptions {
 
 export async function rotateCommand(
   options: RotateOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
   const client = new OpenRouterClient(provisioningKey);
@@ -57,8 +57,8 @@ export async function rotateCommand(
   if (!options.confirm && keysToRotate.length > 0) {
     console.error(
       chalk.yellow(
-        `\nAbout to rotate ${keysToRotate.length} key(s) (delete old, create new):`
-      )
+        `\nAbout to rotate ${keysToRotate.length} key(s) (delete old, create new):`,
+      ),
     );
     for (const key of keysToRotate.slice(0, 5)) {
       console.error(`  - ${key.name} (limit: $${(key.limit ?? 0).toFixed(2)})`);
@@ -69,11 +69,11 @@ export async function rotateCommand(
 
     console.error(
       chalk.yellow(
-        "\nWARNING: Old keys will be deleted and new keys will be generated."
-      )
+        "\nWARNING: Old keys will be deleted and new keys will be generated.",
+      ),
     );
     console.error(
-      chalk.yellow("Users will need to update to the new API keys.")
+      chalk.yellow("Users will need to update to the new API keys."),
     );
 
     const answer = await inquirer.prompt([
@@ -106,7 +106,7 @@ export async function rotateCommand(
       // Create new key with same name and limit
       const { key: newApiKey, hash: newHash } = await client.createKey(
         keyDetails.name,
-        keyDetails.limit ?? 0
+        keyDetails.limit ?? 0,
       );
 
       rotated.push({
@@ -127,7 +127,7 @@ export async function rotateCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to rotate ${oldKey.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to rotate ${oldKey.name}: ${errorMessage}`),
       );
     }
   }
@@ -135,7 +135,7 @@ export async function rotateCommand(
   // Output new keys
   if (rotated.length > 0) {
     console.error(
-      chalk.blue(`\n${rotated.length} key(s) rotated successfully\n`)
+      chalk.blue(`\n${rotated.length} key(s) rotated successfully\n`),
     );
 
     const csvFile =
@@ -145,8 +145,8 @@ export async function rotateCommand(
     console.error(chalk.blue(`New keys saved to: ${csvFile}`));
     console.error(
       chalk.yellow(
-        "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid."
-      )
+        "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid.",
+      ),
     );
   }
 

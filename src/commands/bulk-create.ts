@@ -25,7 +25,7 @@ interface GlobalOptions {
 export async function bulkCreateCommand(
   filePath: string,
   options: BulkCreateOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
@@ -37,11 +37,11 @@ export async function bulkCreateCommand(
   const accounts = await parseAccountList(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   console.error(
-    chalk.blue(`Found ${accounts.length} account(s) in ${filePath}\n`)
+    chalk.blue(`Found ${accounts.length} account(s) in ${filePath}\n`),
   );
 
   const client = new OpenRouterClient(provisioningKey);
@@ -54,7 +54,7 @@ export async function bulkCreateCommand(
 
       const { key: apiKey, hash } = await client.createKey(
         keyName,
-        options.limit
+        options.limit,
       );
 
       results.push({
@@ -76,8 +76,8 @@ export async function bulkCreateCommand(
       });
       console.error(
         chalk.red(
-          `✗ Failed to create key for ${account.email}: ${errorMessage}`
-        )
+          `✗ Failed to create key for ${account.email}: ${errorMessage}`,
+        ),
       );
     }
   }
@@ -85,7 +85,7 @@ export async function bulkCreateCommand(
   // Output results
   if (results.length > 0) {
     console.error(
-      chalk.blue(`\n${results.length} key(s) created successfully\n`)
+      chalk.blue(`\n${results.length} key(s) created successfully\n`),
     );
 
     const allTags = new Set<string>();

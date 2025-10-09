@@ -9,7 +9,7 @@ export function getProvisioningKey(cliKey?: string): string {
   }
 
   throw new Error(
-    "Provisioning key not found. Set OPENROUTER_PROVISIONING_KEY environment variable or use --provisioning-key option"
+    "Provisioning key not found. Set OPENROUTER_PROVISIONING_KEY environment variable or use --provisioning-key option",
   );
 }
 

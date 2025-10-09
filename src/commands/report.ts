@@ -28,7 +28,7 @@ function generateHTML(keys: OpenRouterKey[]): string {
   const totalLimit = keys.reduce((sum, k) => sum + (k.limit ?? 0), 0);
   const totalRemaining = keys.reduce(
     (sum, k) => sum + (k.limit_remaining ?? 0),
-    0
+    0,
   );
   const activeKeys = keys.filter((k) => !k.disabled).length;
   const disabledKeys = keys.filter((k) => k.disabled).length;
@@ -72,7 +72,7 @@ function generateHTML(keys: OpenRouterKey[]): string {
       <td class="number">$${k.monthly.toFixed(2)}</td>
       <td class="date">${new Date(k.createdAt).toLocaleDateString()}</td>
     </tr>
-  `
+  `,
     )
     .join("");
 
@@ -369,7 +369,7 @@ function escapeHtml(text: string): string {
 
 export async function reportCommand(
   options: ReportOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
@@ -381,7 +381,7 @@ export async function reportCommand(
   // Filter by pattern if specified
   if (options.pattern) {
     filteredKeys = filteredKeys.filter((key) =>
-      minimatch(key.name, options.pattern!)
+      minimatch(key.name, options.pattern!),
     );
   }
 
@@ -391,7 +391,7 @@ export async function reportCommand(
   }
 
   console.error(
-    chalk.blue(`Generating report for ${filteredKeys.length} key(s)...`)
+    chalk.blue(`Generating report for ${filteredKeys.length} key(s)...`),
   );
 
   const html = generateHTML(filteredKeys);

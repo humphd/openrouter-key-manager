@@ -18,7 +18,7 @@ interface GlobalOptions {
 
 export async function setLimitCommand(
   options: SetLimitOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
   const client = new OpenRouterClient(provisioningKey);
@@ -57,13 +57,13 @@ export async function setLimitCommand(
   if (!options.confirm && keysToModify.length > 0) {
     console.error(
       chalk.yellow(
-        `\nAbout to set limit to $${options.limit.toFixed(2)} for ${keysToModify.length} key(s):`
-      )
+        `\nAbout to set limit to $${options.limit.toFixed(2)} for ${keysToModify.length} key(s):`,
+      ),
     );
     for (const key of keysToModify.slice(0, 5)) {
       const currentLimit = key.limit ?? 0;
       console.error(
-        `  - ${key.name} (current: $${currentLimit.toFixed(2)} → new: $${options.limit.toFixed(2)})`
+        `  - ${key.name} (current: $${currentLimit.toFixed(2)} → new: $${options.limit.toFixed(2)})`,
       );
     }
     if (keysToModify.length > 5) {
@@ -95,8 +95,8 @@ export async function setLimitCommand(
       updated.push(key.name);
       console.error(
         chalk.green(
-          `✓ Updated limit for ${key.name} to $${options.limit.toFixed(2)}`
-        )
+          `✓ Updated limit for ${key.name} to $${options.limit.toFixed(2)}`,
+        ),
       );
     } catch (error) {
       const errorMessage =
@@ -106,7 +106,7 @@ export async function setLimitCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to update limit for ${key.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to update limit for ${key.name}: ${errorMessage}`),
       );
     }
   }

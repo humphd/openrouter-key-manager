@@ -16,7 +16,7 @@ interface GlobalOptions {
 
 export async function deleteCommand(
   options: DeleteOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
   const client = new OpenRouterClient(provisioningKey);
@@ -52,7 +52,7 @@ export async function deleteCommand(
   // Confirm deletion if multiple keys or no --confirm flag
   if (!options.confirm && keysToDelete.length > 0) {
     console.error(
-      chalk.yellow(`\nAbout to delete ${keysToDelete.length} key(s):`)
+      chalk.yellow(`\nAbout to delete ${keysToDelete.length} key(s):`),
     );
     for (const key of keysToDelete.slice(0, 5)) {
       console.error(`  - ${key.name} (${key.hash})`);
@@ -93,7 +93,7 @@ export async function deleteCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to delete ${key.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to delete ${key.name}: ${errorMessage}`),
       );
     }
   }

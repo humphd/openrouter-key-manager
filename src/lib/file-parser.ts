@@ -13,7 +13,7 @@ function detectDelimiter(filePath: string): string {
 export async function parseAccountList(
   filePath: string,
   delimiter?: string,
-  skipHeader: boolean = true
+  skipHeader: boolean = true,
 ): Promise<AccountRecord[]> {
   try {
     const fileContent = await readFile(filePath, "utf-8");
@@ -32,7 +32,7 @@ export async function parseAccountList(
       if (record.length < 1) {
         throw new FileParseError(
           `Invalid record format. Expected at least 1 column (email), ` +
-            `got ${record.length}`
+            `got ${record.length}`,
         );
       }
 
@@ -48,7 +48,7 @@ export async function parseAccountList(
     throw new FileParseError(
       `Failed to parse ${filePath}: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -56,7 +56,7 @@ export async function parseAccountList(
 export async function parseKeyFile(
   filePath: string,
   delimiter?: string,
-  skipHeader: boolean = true
+  skipHeader: boolean = true,
 ): Promise<KeyRecord[]> {
   try {
     const fileContent = await readFile(filePath, "utf-8");
@@ -89,7 +89,7 @@ export async function parseKeyFile(
         if (record.length < 2) {
           throw new FileParseError(
             `Invalid record format. Expected at least 2 columns ` +
-              `(name, hash), got ${record.length}`
+              `(name, hash), got ${record.length}`,
           );
         }
         return {
@@ -100,7 +100,7 @@ export async function parseKeyFile(
         // Object format from CSV with headers
         if (!record.name || !record.hash) {
           throw new FileParseError(
-            `Missing required fields. Expected 'name' and 'hash' columns`
+            `Missing required fields. Expected 'name' and 'hash' columns`,
           );
         }
         return {
@@ -116,7 +116,7 @@ export async function parseKeyFile(
     throw new FileParseError(
       `Failed to parse key file: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }

@@ -31,7 +31,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "Spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .requiredOption("-e, --email <email>", "Email address")
   .option("-t, --tags <tags...>", "Tags (space-separated)")
@@ -43,7 +43,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -57,7 +57,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "Spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .option("-d, --date <date>", "Issue date (YYYY-MM-DD, default today)")
   .option("--delimiter <char>", "Field delimiter")
@@ -69,7 +69,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -90,7 +90,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -109,7 +109,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -128,7 +128,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -147,7 +147,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -167,7 +167,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -181,7 +181,7 @@ program
   .option("--include-disabled", "Include disabled keys (default false)")
   .option(
     "-o, --output <file>",
-    "Output HTML file (default: report-YYYY-MM-DD.html)"
+    "Output HTML file (default: report-YYYY-MM-DD.html)",
   )
   .action(async (options) => {
     try {
@@ -189,7 +189,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -202,7 +202,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "New spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
   .option("--hash <hash>", "Key hash to update")
@@ -213,7 +213,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -227,7 +227,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "New spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .option("--delimiter <char>", "Field delimiter")
   .option("--skip-header [boolean]", "Skip first row", true)
@@ -238,7 +238,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -248,7 +248,7 @@ program
 program
   .command("rotate")
   .description(
-    "Rotate API key(s) (delete old, create new with same name/limit)"
+    "Rotate API key(s) (delete old, create new with same name/limit)",
   )
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
   .option("--hash <hash>", "Key hash to rotate")
@@ -260,7 +260,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }
@@ -281,7 +281,7 @@ program
     } catch (error) {
       console.error(
         chalk.red("Error:"),
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       process.exit(1);
     }

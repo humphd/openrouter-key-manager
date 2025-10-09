@@ -17,7 +17,7 @@ interface GlobalOptions {
 
 export async function disableCommand(
   options: DisableOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
   const client = new OpenRouterClient(provisioningKey);
@@ -55,7 +55,7 @@ export async function disableCommand(
   // Confirm if multiple keys or no --confirm flag
   if (!options.confirm && keysToModify.length > 0) {
     console.error(
-      chalk.yellow(`\nAbout to ${action} ${keysToModify.length} key(s):`)
+      chalk.yellow(`\nAbout to ${action} ${keysToModify.length} key(s):`),
     );
     for (const key of keysToModify.slice(0, 5)) {
       console.error(`  - ${key.name} (${key.hash})`);
@@ -93,8 +93,8 @@ export async function disableCommand(
       modified.push(key.name);
       console.error(
         chalk.green(
-          `✓ ${action.charAt(0).toUpperCase() + action.slice(1)}d: ${key.name}`
-        )
+          `✓ ${action.charAt(0).toUpperCase() + action.slice(1)}d: ${key.name}`,
+        ),
       );
     } catch (error) {
       const errorMessage =
@@ -104,14 +104,14 @@ export async function disableCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to ${action} ${key.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to ${action} ${key.name}: ${errorMessage}`),
       );
     }
   }
 
   // Report results
   console.error(
-    chalk.blue(`\n${modified.length} key(s) ${action}d successfully`)
+    chalk.blue(`\n${modified.length} key(s) ${action}d successfully`),
   );
 
   if (errors.length > 0) {

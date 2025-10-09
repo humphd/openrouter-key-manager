@@ -28,7 +28,7 @@ interface GlobalOptions {
 
 export async function createCommand(
   options: CreateOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   try {
     const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
@@ -44,7 +44,7 @@ export async function createCommand(
     const keyName = generateKeyName(options.email, tags, date);
     const { key: apiKey, hash } = await client.createKey(
       keyName,
-      options.limit
+      options.limit,
     );
 
     console.error(chalk.green(`✓ Created key for ${options.email}`));

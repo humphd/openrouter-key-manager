@@ -1,7 +1,7 @@
 export function generateKeyName(
   email: string,
   tags: string[],
-  date: string
+  date: string,
 ): string {
   // Trim and replace whitespace in tags with _
   const tagString = tags
@@ -43,7 +43,7 @@ export function parseKeyName(keyName: string): {
 export function generateOutputFilename(
   email: string | null,
   tags: string[],
-  date: string
+  date: string,
 ): string {
   if (email && tags.length === 0) {
     // Single key case

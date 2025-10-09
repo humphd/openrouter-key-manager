@@ -21,7 +21,7 @@ interface GlobalOptions {
 export async function bulkRotateCommand(
   filePath: string,
   options: BulkRotateOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
@@ -29,7 +29,7 @@ export async function bulkRotateCommand(
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   console.error(chalk.blue(`Found ${keys.length} key(s) in ${filePath}\n`));
@@ -38,8 +38,8 @@ export async function bulkRotateCommand(
   if (!options.confirm) {
     console.error(
       chalk.yellow(
-        `\nAbout to rotate ${keys.length} key(s) (delete old, create new):`
-      )
+        `\nAbout to rotate ${keys.length} key(s) (delete old, create new):`,
+      ),
     );
     for (const key of keys.slice(0, 5)) {
       console.error(`  - ${key.name} (${key.hash})`);
@@ -51,11 +51,11 @@ export async function bulkRotateCommand(
 
     console.error(
       chalk.yellow(
-        "\nWARNING: Old keys will be deleted and new keys will be generated."
-      )
+        "\nWARNING: Old keys will be deleted and new keys will be generated.",
+      ),
     );
     console.error(
-      chalk.yellow("Users will need to update to the new API keys.")
+      chalk.yellow("Users will need to update to the new API keys."),
     );
 
     const answer = await inquirer.prompt([
@@ -90,7 +90,7 @@ export async function bulkRotateCommand(
       // Create new key with same name and limit
       const { key: newApiKey, hash: newHash } = await client.createKey(
         keyDetails.name,
-        keyDetails.limit ?? 0
+        keyDetails.limit ?? 0,
       );
 
       rotated.push({
@@ -111,7 +111,7 @@ export async function bulkRotateCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to rotate ${key.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to rotate ${key.name}: ${errorMessage}`),
       );
     }
   }
@@ -119,7 +119,7 @@ export async function bulkRotateCommand(
   // Output new keys
   if (rotated.length > 0) {
     console.error(
-      chalk.blue(`\n${rotated.length} key(s) rotated successfully\n`)
+      chalk.blue(`\n${rotated.length} key(s) rotated successfully\n`),
     );
 
     const csvFile =
@@ -129,8 +129,8 @@ export async function bulkRotateCommand(
     console.error(chalk.blue(`New keys saved to: ${csvFile}`));
     console.error(
       chalk.yellow(
-        "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid."
-      )
+        "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid.",
+      ),
     );
   }
 

@@ -18,7 +18,7 @@ export function validateTags(tags: string[]): void {
     }
     if (tag.includes(" ")) {
       throw new ValidationError(
-        `Tag cannot contain spaces: "${tag}". Use hyphens or underscores.`
+        `Tag cannot contain spaces: "${tag}". Use hyphens or underscores.`,
       );
     }
   }
@@ -60,7 +60,7 @@ export function validateFormat(format: string): OutputFormat {
   const validFormats: OutputFormat[] = ["table", "json", "csv"];
   if (!validFormats.includes(format as OutputFormat)) {
     throw new ValidationError(
-      `Format must be one of: ${validFormats.join(", ")}`
+      `Format must be one of: ${validFormats.join(", ")}`,
     );
   }
   return format as OutputFormat;

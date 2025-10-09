@@ -18,8 +18,8 @@ function formatCreatedKeysAsCsv(keys: KeyInfo[]): string {
   for (const key of keys) {
     lines.push(
       [escapeCsv(key.keyName), escapeCsv(key.apiKey), escapeCsv(key.hash)].join(
-        ","
-      )
+        ",",
+      ),
     );
   }
 
@@ -28,7 +28,7 @@ function formatCreatedKeysAsCsv(keys: KeyInfo[]): string {
 
 export async function outputCreatedKeys(
   keys: KeyInfo[],
-  outputFile: string
+  outputFile: string,
 ): Promise<void> {
   const formatted = formatCreatedKeysAsCsv(keys);
   await writeFile(outputFile, formatted, "utf-8");
@@ -58,7 +58,7 @@ function truncateHash(hash: string): string {
 
 function formatKeyListAsTable(
   keys: KeyListItem[],
-  full: boolean = false
+  full: boolean = false,
 ): string {
   const table = new Table({
     head: ["Name", "Hash", "Remaining", "Disabled"],
@@ -95,7 +95,7 @@ function formatKeyListAsCsv(keys: KeyListItem[]): string {
           ? escapeCsv(key.remaining)
           : "",
         escapeCsv(key.disabled ?? false),
-      ].join(",")
+      ].join(","),
     );
   }
 
@@ -106,7 +106,7 @@ export async function outputKeyList(
   keys: KeyListItem[],
   format: OutputFormat,
   outputFile?: string,
-  full: boolean = false
+  full: boolean = false,
 ): Promise<void> {
   let formatted: string;
 

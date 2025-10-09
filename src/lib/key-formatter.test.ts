@@ -10,7 +10,7 @@ describe("generateKeyName", () => {
     const result = generateKeyName(
       "alice@example.com",
       ["CCP555", "student"],
-      "2025-01-15"
+      "2025-01-15",
     );
 
     expect(result).toBe("alice@example.com CCP555 student 2025-01-15");
@@ -26,7 +26,7 @@ describe("generateKeyName", () => {
     const result = generateKeyName(
       "alice@example.com",
       ["CCP 555", "AI lab"],
-      "2025-01-15"
+      "2025-01-15",
     );
 
     expect(result).toBe("alice@example.com CCP_555 AI_lab 2025-01-15");
@@ -36,7 +36,7 @@ describe("generateKeyName", () => {
     const result = generateKeyName(
       "alice@example.com",
       ["  CCP555  ", " student "],
-      "2025-01-15"
+      "2025-01-15",
     );
 
     expect(result).toBe("alice@example.com CCP555 student 2025-01-15");
@@ -92,7 +92,7 @@ describe("generateOutputFilename", () => {
     const result = generateOutputFilename(
       "alice@example.com",
       [],
-      "2025-01-15"
+      "2025-01-15",
     );
 
     expect(result).toBe("alice-example.com-2025-01-15.csv");
@@ -102,7 +102,7 @@ describe("generateOutputFilename", () => {
     const result = generateOutputFilename(
       null,
       ["CCP555", "student", "section-A"],
-      "2025-01-15"
+      "2025-01-15",
     );
 
     expect(result).toBe("CCP555-student-section-A-2025-01-15.csv");
@@ -112,7 +112,7 @@ describe("generateOutputFilename", () => {
     const result = generateOutputFilename(
       null,
       ["CCP555", "student", "section-A", "extra", "more"],
-      "2025-01-15"
+      "2025-01-15",
     );
 
     expect(result).toBe("CCP555-student-section-A-2025-01-15.csv");

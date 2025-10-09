@@ -41,7 +41,7 @@ describe("OpenRouterClient", () => {
 
       const result = await client.createKey(
         "test@example.com student 2025-01-15",
-        10
+        10,
       );
 
       expect(result).toEqual({
@@ -61,7 +61,7 @@ describe("OpenRouterClient", () => {
             name: "test@example.com student 2025-01-15",
             limit: 10,
           }),
-        })
+        }),
       );
     });
 
@@ -76,11 +76,11 @@ describe("OpenRouterClient", () => {
       });
 
       await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
-        ApiError
+        ApiError,
       );
 
       await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
-        "Invalid provisioning key"
+        "Invalid provisioning key",
       );
     });
   });
@@ -131,7 +131,7 @@ describe("OpenRouterClient", () => {
       expect(result[0].hash).toBe("hash-1");
       expect(fetch).toHaveBeenCalledWith(
         "https://openrouter.ai/api/v1/keys?include_disabled=false",
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -145,7 +145,7 @@ describe("OpenRouterClient", () => {
 
       expect(fetch).toHaveBeenCalledWith(
         "https://openrouter.ai/api/v1/keys?include_disabled=true",
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -180,7 +180,7 @@ describe("OpenRouterClient", () => {
       expect(result.name).toBe("test@example.com");
       expect(fetch).toHaveBeenCalledWith(
         "https://openrouter.ai/api/v1/keys/hash-abc",
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -199,7 +199,7 @@ describe("OpenRouterClient", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ limit: 25 }),
-        })
+        }),
       );
     });
   });
@@ -218,7 +218,7 @@ describe("OpenRouterClient", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ disabled: true }),
-        })
+        }),
       );
     });
   });
@@ -237,7 +237,7 @@ describe("OpenRouterClient", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ disabled: false }),
-        })
+        }),
       );
     });
   });
@@ -255,7 +255,7 @@ describe("OpenRouterClient", () => {
         "https://openrouter.ai/api/v1/keys/hash-abc",
         expect.objectContaining({
           method: "DELETE",
-        })
+        }),
       );
     });
   });
@@ -298,7 +298,7 @@ describe("OpenRouterClient", () => {
         "https://openrouter.ai/api/v1/keys/hash-abc",
         expect.objectContaining({
           method: "DELETE",
-        })
+        }),
       );
     });
 
@@ -309,10 +309,10 @@ describe("OpenRouterClient", () => {
       });
 
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
-        ApiError
+        ApiError,
       );
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
-        "Key not found"
+        "Key not found",
       );
     });
   });

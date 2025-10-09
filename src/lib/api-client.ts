@@ -36,7 +36,7 @@ export class OpenRouterClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
@@ -54,7 +54,7 @@ export class OpenRouterClient {
       const errorMessage = await this.parseErrorMessage(response);
       throw new ApiError(
         `API request failed: ${response.statusText} - ${errorMessage}`,
-        response.status
+        response.status,
       );
     }
 
@@ -63,7 +63,7 @@ export class OpenRouterClient {
 
   async createKey(
     keyName: string,
-    limit: number
+    limit: number,
   ): Promise<{ key: string; hash: string }> {
     const response = await this.request<OpenRouterCreateKeyResponse>("/keys", {
       method: "POST",
@@ -104,7 +104,7 @@ export class OpenRouterClient {
 
   async getKey(hash: string): Promise<OpenRouterKey> {
     const response = await this.request<{ data: OpenRouterKey }>(
-      `/keys/${hash}`
+      `/keys/${hash}`,
     );
     return response.data;
   }

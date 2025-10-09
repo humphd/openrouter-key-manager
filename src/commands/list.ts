@@ -19,7 +19,7 @@ interface GlobalOptions {
 
 export async function listCommand(
   options: ListOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
   const { pattern, includeDisabled } = options;
@@ -44,8 +44,8 @@ export async function listCommand(
   if (!includeDisabled) {
     console.error(
       chalk.blue(
-        "TIP: use `--include-disabled` to include disabled keys as well."
-      )
+        "TIP: use `--include-disabled` to include disabled keys as well.",
+      ),
     );
   }
 

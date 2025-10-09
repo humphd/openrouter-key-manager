@@ -19,7 +19,7 @@ interface GlobalOptions {
 export async function bulkSetLimitCommand(
   filePath: string,
   options: BulkSetLimitOptions,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
@@ -29,7 +29,7 @@ export async function bulkSetLimitCommand(
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   console.error(chalk.blue(`Found ${keys.length} key(s) in ${filePath}\n`));
@@ -38,8 +38,8 @@ export async function bulkSetLimitCommand(
   if (!options.confirm) {
     console.error(
       chalk.yellow(
-        `\nAbout to set limit to $${options.limit.toFixed(2)} for ${keys.length} key(s):`
-      )
+        `\nAbout to set limit to $${options.limit.toFixed(2)} for ${keys.length} key(s):`,
+      ),
     );
     for (const key of keys.slice(0, 5)) {
       console.error(`  - ${key.name} (${key.hash})`);
@@ -76,8 +76,8 @@ export async function bulkSetLimitCommand(
       updated.push(key.name);
       console.error(
         chalk.green(
-          `✓ Updated limit for ${key.name} to $${options.limit.toFixed(2)}`
-        )
+          `✓ Updated limit for ${key.name} to $${options.limit.toFixed(2)}`,
+        ),
       );
     } catch (error) {
       const errorMessage =
@@ -87,7 +87,7 @@ export async function bulkSetLimitCommand(
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to update ${key.name}: ${errorMessage}`)
+        chalk.red(`✗ Failed to update ${key.name}: ${errorMessage}`),
       );
     }
   }
