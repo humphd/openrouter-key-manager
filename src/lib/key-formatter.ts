@@ -1,37 +1,48 @@
 export function generateKeyName(
   email: string,
-  studentId: string,
-  course: string,
+  tags: string[],
   date: string
 ): string {
-  return `${email} ${studentId} ${course} ${date}`;
+  // Trim and replace whitespace in tags with _
+  const tagString = tags
+    .map((tag) => tag.trim().replace(/\s+/g, "_"))
+    .join(" ");
+  return `${email} ${tagString} ${date}`;
 }
 
-export function generateEmail(username: string, domain: string): string {
-  if (username.includes("@")) {
-    return username;
-  }
-  return `${username}@${domain}`;
-}
-
-export function parseKeyName(keyName: string):
-  | {
-      email: string;
-      studentId: string;
-      course: string;
-      date: string;
-    }
-  | string {
+export function parseKeyName(keyName: string): {
+  email: string;
+  tags: string[];
+  date: string;
+} | null {
   const parts = keyName.split(" ");
-  if (parts.length < 4) {
-    // Format of key name is not what we expect, use the entire string
-    return keyName;
+  if (parts.length < 2) {
+    return null;
   }
 
-  return {
-    email: parts[0],
-    studentId: parts[1],
-    course: parts[2],
-    date: parts[3],
-  };
+  const email = parts[0];
+  const date = parts[parts.length - 1];
+  const tags = parts.slice(1, -1);
+
+  // Validate date format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return null;
+  }
+
+  return { email, tags, date };
+}
+
+export function generateOutputFilename(
+  email: string | null,
+  tags: string[],
+  date: string
+): string {
+  if (email && tags.length === 0) {
+    // Single key case
+    return `${email.replace("@", "-")}-${date}.csv`;
+  }
+
+  // Multiple keys - use first 3 tags
+  const tagPart = tags.slice(0, 3).join("-");
+  return `${tagPart}-${date}.csv`;
 }

@@ -1,14 +1,10 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { OpenRouterClient } from "../lib/api-client.js";
-import { parseStudentRoster, parseKeyFile } from "../lib/file-parser.js";
-import { generateEmail, generateKeyName } from "../lib/key-formatter.js";
-import { validateCourse, validateDate } from "../lib/validators.js";
-import { getProvisioningKey, getEmailDomain } from "../utils/config.js";
+import { parseKeyFile } from "../lib/file-parser.js";
+import { getProvisioningKey } from "../utils/config.js";
 
 interface BulkDeleteOptions {
-  course?: string;
-  date?: string;
   delimiter?: string;
   skipHeader?: boolean;
   confirm?: boolean;
@@ -16,7 +12,6 @@ interface BulkDeleteOptions {
 
 interface GlobalOptions {
   provisioningKey?: string;
-  emailDomain?: string;
 }
 
 export async function bulkDeleteCommand(
@@ -24,63 +19,26 @@ export async function bulkDeleteCommand(
   options: BulkDeleteOptions,
   globalOptions: GlobalOptions
 ): Promise<void> {
-  // Get provisioning key
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
-  // Determine file type and parse
-  const keyNames: string[] = [];
+  // Parse key file (only needs name and hash)
+  const keys = await parseKeyFile(
+    filePath,
+    options.delimiter,
+    options.skipHeader ?? true
+  );
 
-  try {
-    // Try parsing as key file first
-    const keys = await parseKeyFile(
-      filePath,
-      options.delimiter,
-      options.skipHeader ?? true
-    );
-
-    for (const key of keys) {
-      keyNames.push(key.keyName);
-    }
-  } catch {
-    // Parse as student roster
-    if (!options.course || !options.date) {
-      throw new Error(
-        "When using student roster file, --course and --date " + "are required"
-      );
-    }
-
-    validateCourse(options.course);
-    validateDate(options.date);
-
-    const students = await parseStudentRoster(
-      filePath,
-      options.delimiter,
-      options.skipHeader ?? true
-    );
-
-    const emailDomain = getEmailDomain(globalOptions.emailDomain);
-
-    for (const student of students) {
-      const email = generateEmail(student.username, emailDomain);
-      const keyName = generateKeyName(
-        email,
-        student.studentId,
-        options.course,
-        options.date
-      );
-      keyNames.push(keyName);
-    }
-  }
+  console.error(chalk.blue(`Found ${keys.length} key(s) in ${filePath}\n`));
 
   // Confirm deletion
   if (!options.confirm) {
-    console.error(chalk.yellow(`\nAbout to delete ${keyNames.length} key(s):`));
-    for (const keyName of keyNames.slice(0, 5)) {
-      console.error(`  - ${keyName}`);
+    console.error(chalk.yellow(`\nAbout to delete ${keys.length} key(s):`));
+    for (const key of keys.slice(0, 5)) {
+      console.error(`  - ${key.name} (${key.hash})`);
     }
 
-    if (keyNames.length > 5) {
-      console.error(chalk.gray(`  ... and ${keyNames.length - 5} more`));
+    if (keys.length > 5) {
+      console.error(chalk.gray(`  ... and ${keys.length - 5} more`));
     }
 
     const answer = await inquirer.prompt([
@@ -98,26 +56,26 @@ export async function bulkDeleteCommand(
     }
   }
 
-  // Delete keys
+  // Delete keys using hash (more reliable than name)
   const client = new OpenRouterClient(provisioningKey);
 
   const deleted: string[] = [];
-  const errors: Array<{ keyName: string; error: string }> = [];
+  const errors: Array<{ key: string; error: string }> = [];
 
-  for (const keyName of keyNames) {
+  for (const key of keys) {
     try {
-      await client.deleteKey(keyName);
-      deleted.push(keyName);
-      console.error(chalk.green(`✓ Deleted: ${keyName}`));
+      await client.deleteKeyByHash(key.hash);
+      deleted.push(key.name);
+      console.error(chalk.green(`✓ Deleted: ${key.name}`));
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       errors.push({
-        keyName,
+        key: key.name,
         error: errorMessage,
       });
       console.error(
-        chalk.red(`✗ Failed to delete ${keyName}: ${errorMessage}`)
+        chalk.red(`✗ Failed to delete ${key.name}: ${errorMessage}`)
       );
     }
   }

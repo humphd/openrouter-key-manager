@@ -1,37 +1,29 @@
 import chalk from "chalk";
 import { OpenRouterClient } from "../lib/api-client.js";
-import { generateEmail, generateKeyName } from "../lib/key-formatter.js";
-import { outputResult } from "../lib/output-formatter.js";
+import {
+  generateKeyName,
+  generateOutputFilename,
+} from "../lib/key-formatter.js";
+import { outputCreatedKeys } from "../lib/output-formatter.js";
 import {
   validateEmail,
-  validateUsername,
-  validateStudentId,
-  validateCourse,
+  validateTags,
   validateDate,
   validateLimit,
-  validateFormat,
 } from "../lib/validators.js";
-import {
-  getProvisioningKey,
-  getEmailDomain,
-  getTodayDate,
-} from "../utils/config.js";
-import type { KeyRecord } from "../types.js";
+import { getProvisioningKey, getTodayDate } from "../utils/config.js";
+import type { KeyInfo } from "../types.js";
 
 interface CreateOptions {
   limit: number;
-  username?: string;
-  email?: string;
-  studentId: string;
-  course: string;
+  email: string;
+  tags?: string[];
   date?: string;
-  format?: string;
   output?: string;
 }
 
 interface GlobalOptions {
   provisioningKey?: string;
-  emailDomain?: string;
 }
 
 export async function createCommand(
@@ -39,53 +31,28 @@ export async function createCommand(
   globalOptions: GlobalOptions
 ): Promise<void> {
   try {
-    // Get provisioning key
     const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
-    // Validate inputs
-    validateStudentId(options.studentId);
-    validateCourse(options.course);
+    validateEmail(options.email);
+    const tags = options.tags || [];
+    validateTags(tags);
     validateLimit(options.limit);
-
-    // Determine email
-    const emailDomain = getEmailDomain(globalOptions.emailDomain);
-    let email: string;
-
-    if (options.email) {
-      validateEmail(options.email);
-      email = options.email;
-    } else if (options.username) {
-      validateUsername(options.username);
-      email = generateEmail(options.username, emailDomain);
-    } else {
-      throw new Error("Either --username or --email must be provided");
-    }
-
-    // Get or default date
     const date = options.date || getTodayDate();
     validateDate(date);
 
-    // Generate key name
-    const keyName = generateKeyName(
-      email,
-      options.studentId,
-      options.course,
-      date
-    );
-
-    // Create key via API
     const client = new OpenRouterClient(provisioningKey);
+    const keyName = generateKeyName(options.email, tags, date);
     const { key: apiKey, hash } = await client.createKey(
       keyName,
       options.limit
     );
 
-    // Format result
-    const result: KeyRecord[] = [
+    console.error(chalk.green(`✓ Created key for ${options.email}`));
+
+    const result: KeyInfo[] = [
       {
-        email,
-        studentId: options.studentId,
-        course: options.course,
+        email: options.email,
+        tags,
         issuedDate: date,
         keyName,
         apiKey,
@@ -93,11 +60,13 @@ export async function createCommand(
       },
     ];
 
-    // Output
-    const format = validateFormat(options.format || "table");
-    await outputResult(result, format, options.output);
+    const csvFile =
+      options.output || generateOutputFilename(options.email, tags, date);
+    await outputCreatedKeys(result, csvFile);
+    console.error(chalk.blue(`CSV output saved to: ${csvFile}`));
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(chalk.red(`✗ Failed to create key: ${errorMessage}`));
+    throw error;
   }
 }

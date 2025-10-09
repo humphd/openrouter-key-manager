@@ -13,6 +13,27 @@ export class OpenRouterClient {
     this.provisioningKey = provisioningKey;
   }
 
+  private async parseErrorMessage(response: Response): Promise<string> {
+    try {
+      const errorJson: unknown = await response.json();
+      // Extract message from common error formats
+      if (typeof errorJson === "object" && errorJson !== null) {
+        const err = errorJson as Record<string, unknown>;
+        const nestedError = err.error as Record<string, unknown> | undefined;
+        return (
+          (nestedError?.message as string) ||
+          (err.message as string) ||
+          JSON.stringify(errorJson)
+        );
+      } else {
+        return JSON.stringify(errorJson);
+      }
+    } catch {
+      // Fall back to text if JSON parsing fails
+      return await response.text();
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -30,9 +51,9 @@ export class OpenRouterClient {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorMessage = await this.parseErrorMessage(response);
       throw new ApiError(
-        `API request failed: ${response.statusText} - ${errorText}`,
+        `API request failed: ${response.statusText} - ${errorMessage}`,
         response.status
       );
     }
@@ -52,11 +73,14 @@ export class OpenRouterClient {
       }),
     });
 
-    return { key: response.key, hash: response.hash };
+    // https://openrouter.ai/docs/api-reference/api-keys/create-api-key
+    return { key: response.key, hash: response.data.hash };
   }
 
-  async listKeys(): Promise<OpenRouterKey[]> {
-    const response = await this.request<OpenRouterKeysResponse>("/keys");
+  async listKeys(includeDisabled: boolean = false): Promise<OpenRouterKey[]> {
+    // https://openrouter.ai/docs/api-reference/api-keys/list-api-keys#request.query
+    const path = `/keys?include_disabled=${includeDisabled ? "true" : "false"}`;
+    const response = await this.request<OpenRouterKeysResponse>(path);
     return response.data;
   }
 

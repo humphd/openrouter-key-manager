@@ -21,22 +21,15 @@ export async function listCommand(
   globalOptions: GlobalOptions
 ): Promise<void> {
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
+  const { pattern, includeDisabled } = options;
 
   const client = new OpenRouterClient(provisioningKey);
-  const allKeys = await client.listKeys();
+  const allKeys = await client.listKeys(includeDisabled);
 
   let filteredKeys = allKeys;
-
   // Filter by pattern if specified
-  if (options.pattern) {
-    filteredKeys = filteredKeys.filter((key) =>
-      minimatch(key.name, options.pattern!)
-    );
-  }
-
-  // Filter disabled keys unless explicitly included
-  if (!options.includeDisabled) {
-    filteredKeys = filteredKeys.filter((key) => !key.disabled);
+  if (pattern) {
+    filteredKeys = filteredKeys.filter((key) => minimatch(key.name, pattern));
   }
 
   const keyList: KeyListItem[] = filteredKeys.map((key) => ({
@@ -47,6 +40,13 @@ export async function listCommand(
   }));
 
   console.error(chalk.blue(`Found ${keyList.length} key(s)\n`));
+  if (!includeDisabled) {
+    console.error(
+      chalk.blue(
+        "TIP: use `--include-disabled` to include disabled keys as well."
+      )
+    );
+  }
 
   const format = validateFormat(options.format || "table");
   await outputKeyList(keyList, format, options.output);

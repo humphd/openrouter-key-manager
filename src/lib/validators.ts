@@ -10,21 +10,17 @@ export function validateEmail(email: string): void {
   }
 }
 
-export function validateUsername(username: string): void {
-  if (!username || username.trim().length === 0) {
-    throw new ValidationError("Username cannot be empty");
-  }
-}
-
-export function validateStudentId(id: string): void {
-  if (!id || id.trim().length === 0) {
-    throw new ValidationError("Student ID cannot be empty");
-  }
-}
-
-export function validateCourse(course: string): void {
-  if (!course || course.trim().length === 0) {
-    throw new ValidationError("Course code cannot be empty");
+export function validateTags(tags: string[]): void {
+  // Tags are optional, so empty array is valid
+  for (const tag of tags) {
+    if (!tag || tag.trim().length === 0) {
+      throw new ValidationError("Tags cannot be empty");
+    }
+    if (tag.includes(" ")) {
+      throw new ValidationError(
+        `Tag cannot contain spaces: "${tag}". Use hyphens or underscores.`
+      );
+    }
   }
 }
 
@@ -50,7 +46,7 @@ export function validateFormat(format: string): OutputFormat {
   const validFormats: OutputFormat[] = ["table", "json", "csv"];
   if (!validFormats.includes(format as OutputFormat)) {
     throw new ValidationError(
-      `Format must be one of: ${validFormats.join(", ")}`,
+      `Format must be one of: ${validFormats.join(", ")}`
     );
   }
   return format as OutputFormat;

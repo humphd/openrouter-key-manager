@@ -21,8 +21,17 @@ export async function deleteCommand(
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
   const client = new OpenRouterClient(provisioningKey);
 
+  // Validate that only one of pattern or hash is provided
+  if (options.pattern && options.hash) {
+    throw new Error("Cannot specify both --pattern and --hash. Choose one.");
+  }
+
+  if (!options.pattern && !options.hash) {
+    throw new Error("Either --pattern or --hash must be provided");
+  }
+
   // Get all keys
-  const allKeys = await client.listKeys();
+  const allKeys = await client.listKeys(true);
   let keysToDelete = allKeys;
 
   // Filter by hash if provided
@@ -38,8 +47,6 @@ export async function deleteCommand(
     if (keysToDelete.length === 0) {
       throw new Error(`No keys match pattern: ${options.pattern}`);
     }
-  } else {
-    throw new Error("Either --pattern or --hash must be provided");
   }
 
   // Confirm deletion if multiple keys or no --confirm flag

@@ -374,7 +374,7 @@ export async function reportCommand(
   const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
 
   const client = new OpenRouterClient(provisioningKey);
-  const allKeys = await client.listKeys();
+  const allKeys = await client.listKeys(true);
 
   let filteredKeys = allKeys;
 

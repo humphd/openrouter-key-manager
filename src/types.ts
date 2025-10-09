@@ -1,17 +1,18 @@
-export interface StudentRecord {
-  lastName: string;
-  firstName: string;
-  username: string;
-  studentId: string;
+export interface AccountRecord {
+  email: string;
+  tags: string[];
 }
 
 export interface KeyRecord {
+  name: string;
+  hash: string;
+}
+
+export interface KeyInfo {
   email: string;
-  studentId: string;
-  course: string;
+  tags: string[];
   issuedDate: string;
   keyName: string;
-  // TODO: should this be optional?
   apiKey: string;
   hash: string;
 }
@@ -36,7 +37,8 @@ export interface OpenRouterKeysResponse {
   data: OpenRouterKey[];
 }
 
-export interface OpenRouterCreateKeyResponse extends OpenRouterKey {
+export interface OpenRouterCreateKeyResponse {
+  data: OpenRouterKey;
   key: string;
 }
 

@@ -16,27 +16,23 @@ const program = new Command();
 
 program
   .name("openrouter-key-manager")
-  .description("Manage OpenRouter.ai API keys for students")
+  .description("Manage OpenRouter.ai API keys")
   .version(version)
-  .option("-k, --provisioning-key <key>", "OpenRouter.ai API Provisioning Key")
-  .option("--email-domain <domain>", "Student email domain", "myseneca.ca");
+  .option("-k, --provisioning-key <key>", "OpenRouter.ai API Provisioning Key");
 
 // CREATE command
 program
   .command("create")
-  .description("Create an API key for a single student")
+  .description("Create an API key for a single account")
   .requiredOption(
     "-l, --limit <amount>",
-    "Spending limit in dollars",
+    "Spending limit in US dollars",
     parseFloat
   )
-  .option("-u, --username <username>", "Student username")
-  .option("-e, --email <email>", "Student email")
-  .requiredOption("-s, --student-id <id>", "Student ID")
-  .requiredOption("-c, --course <course>", "Course code")
-  .option("-d, --date <date>", "Issue date (YYYY-MM-DD)")
-  .option("-f, --format <format>", "Output format (table, json, csv)", "table")
-  .option("-o, --output <file>", "Output file")
+  .requiredOption("-e, --email <email>", "Email address")
+  .option("-t, --tags <tags...>", "Tags (space-separated)")
+  .option("-d, --date <date>", "Issue date (YYYY-MM-DD, default today)")
+  .option("-o, --output <file>", "CSV output file (default: auto-generated)")
   .action(async (options) => {
     try {
       await createCommand(options, program.opts());
@@ -52,19 +48,17 @@ program
 // BULK-CREATE command
 program
   .command("bulk-create")
-  .description("Create API keys for multiple students")
-  .argument("<file>", "CSV/TSV file with student information")
+  .description("Create API keys for multiple accounts")
+  .argument("<file>", "CSV/TSV file with account information")
   .requiredOption(
     "-l, --limit <amount>",
-    "Spending limit in dollars",
+    "Spending limit in US dollars",
     parseFloat
   )
-  .requiredOption("-c, --course <course>", "Course code")
-  .option("-d, --date <date>", "Issue date (YYYY-MM-DD)")
+  .option("-d, --date <date>", "Issue date (YYYY-MM-DD, default today)")
   .option("--delimiter <char>", "Field delimiter")
   .option("--skip-header [boolean]", "Skip first row", true)
-  .option("-f, --format <format>", "Output format (table, json, csv)", "table")
-  .option("-o, --output <file>", "Output file")
+  .option("-o, --output <file>", "CSV output file (default: auto-generated)")
   .action(async (file, options) => {
     try {
       await bulkCreateCommand(file, options, program.opts());
@@ -82,7 +76,7 @@ program
   .command("list")
   .description("List API keys with usage information")
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
-  .option("--include-disabled", "Include disabled keys")
+  .option("--include-disabled", "Include disabled keys (default false)")
   .option("-f, --format <format>", "Output format (table, json, csv)", "table")
   .option("-o, --output <file>", "Output file")
   .action(async (options) => {
@@ -103,10 +97,29 @@ program
   .description("Disable API key(s)")
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
   .option("--hash <hash>", "Key hash to disable")
-  .option("--confirm", "Skip confirmation prompt")
+  .option("-y, --confirm", "Skip confirmation prompt")
   .action(async (options) => {
     try {
       await disableCommand(options, program.opts());
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// ENABLE command
+program
+  .command("enable")
+  .description("Enable API key(s)")
+  .option("-p, --pattern <pattern>", "Filter by glob pattern")
+  .option("--hash <hash>", "Key hash to enable")
+  .option("-y, --confirm", "Skip confirmation prompt")
+  .action(async (options) => {
+    try {
+      await disableCommand({ ...options, enable: true }, program.opts());
     } catch (error) {
       console.error(
         chalk.red("Error:"),
@@ -122,7 +135,7 @@ program
   .description("Delete API key(s)")
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
   .option("--hash <hash>", "Key hash to delete")
-  .option("--confirm", "Skip confirmation prompt")
+  .option("-y, --confirm", "Skip confirmation prompt")
   .action(async (options) => {
     try {
       await deleteCommand(options, program.opts());
@@ -138,13 +151,11 @@ program
 // BULK-DELETE command
 program
   .command("bulk-delete")
-  .description("Delete API keys for multiple students")
-  .argument("<file>", "File with student or key information")
-  .option("-c, --course <course>", "Course code (for student roster)")
-  .option("-d, --date <date>", "Issue date (for student roster)")
+  .description("Delete API keys for multiple accounts")
+  .argument("<file>", "CSV/JSON file with key information (name,hash)")
   .option("--delimiter <char>", "Field delimiter")
   .option("--skip-header [boolean]", "Skip first row", true)
-  .option("--confirm", "Skip confirmation prompt")
+  .option("-y, --confirm", "Skip confirmation prompt")
   .action(async (file, options) => {
     try {
       await bulkDeleteCommand(file, options, program.opts());
@@ -162,7 +173,7 @@ program
   .command("report")
   .description("Generate usage report as HTML")
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
-  .option("--include-disabled", "Include disabled keys")
+  .option("--include-disabled", "Include disabled keys (default false)")
   .option(
     "-o, --output <file>",
     "Output HTML file (default: report-YYYY-MM-DD.html)"
