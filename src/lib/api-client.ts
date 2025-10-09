@@ -102,6 +102,22 @@ export class OpenRouterClient {
     });
   }
 
+  async getKey(hash: string): Promise<OpenRouterKey> {
+    const response = await this.request<{ data: OpenRouterKey }>(
+      `/keys/${hash}`
+    );
+    return response.data;
+  }
+
+  async setKeyLimit(hash: string, limit: number): Promise<void> {
+    await this.request(`/keys/${hash}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        limit,
+      }),
+    });
+  }
+
   async deleteKeyByHash(hash: string): Promise<void> {
     await this.request(`/keys/${hash}`, {
       method: "DELETE",

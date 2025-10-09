@@ -42,15 +42,32 @@ export interface KeyListItem {
   remaining?: number | null;
 }
 
-function formatKeyListAsTable(keys: KeyListItem[]): string {
+function truncateName(name: string): string {
+  // Split at first space to show email
+  const spaceIndex = name.indexOf(" ");
+  if (spaceIndex === -1) {
+    return name;
+  }
+  return name.substring(0, spaceIndex).concat("...");
+}
+
+function truncateHash(hash: string): string {
+  // Use first 7 characters
+  return hash.substring(0, 7).concat("...");
+}
+
+function formatKeyListAsTable(
+  keys: KeyListItem[],
+  full: boolean = false
+): string {
   const table = new Table({
     head: ["Name", "Hash", "Remaining", "Disabled"],
   });
 
   for (const key of keys) {
     table.push([
-      key.name,
-      key.hash,
+      full ? key.name : truncateName(key.name),
+      full ? key.hash : truncateHash(key.hash),
       key.remaining !== null && key.remaining !== undefined
         ? `$${key.remaining.toFixed(2)}`
         : "N/A",
@@ -88,13 +105,14 @@ function formatKeyListAsCsv(keys: KeyListItem[]): string {
 export async function outputKeyList(
   keys: KeyListItem[],
   format: OutputFormat,
-  outputFile?: string
+  outputFile?: string,
+  full: boolean = false
 ): Promise<void> {
   let formatted: string;
 
   switch (format) {
     case "table":
-      formatted = formatKeyListAsTable(keys);
+      formatted = formatKeyListAsTable(keys, full);
       break;
     case "json":
       formatted = formatKeyListAsJson(keys);

@@ -9,6 +9,10 @@ import { bulkDeleteCommand } from "../src/commands/bulk-delete.js";
 import { listCommand } from "../src/commands/list.js";
 import { disableCommand } from "../src/commands/disable.js";
 import { reportCommand } from "../src/commands/report.js";
+import { setLimitCommand } from "../src/commands/set-limit.js";
+import { bulkSetLimitCommand } from "../src/commands/bulk-set-limit.js";
+import { rotateCommand } from "../src/commands/rotate.js";
+import { bulkRotateCommand } from "../src/commands/bulk-rotate.js";
 import packageJson from "../package.json" with { type: "json" };
 const { version } = packageJson;
 
@@ -79,6 +83,7 @@ program
   .option("--include-disabled", "Include disabled keys (default false)")
   .option("-f, --format <format>", "Output format (table, json, csv)", "table")
   .option("-o, --output <file>", "Output file")
+  .option("--full", "Show full name and hash (default: truncated)")
   .action(async (options) => {
     try {
       await listCommand(options, program.opts());
@@ -181,6 +186,98 @@ program
   .action(async (options) => {
     try {
       await reportCommand(options, program.opts());
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// SET-LIMIT command
+program
+  .command("set-limit")
+  .description("Set spending limit for API key(s)")
+  .requiredOption(
+    "-l, --limit <amount>",
+    "New spending limit in US dollars",
+    parseFloat
+  )
+  .option("-p, --pattern <pattern>", "Filter by glob pattern")
+  .option("--hash <hash>", "Key hash to update")
+  .option("-y, --confirm", "Skip confirmation prompt")
+  .action(async (options) => {
+    try {
+      await setLimitCommand(options, program.opts());
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// BULK-SET-LIMIT command
+program
+  .command("bulk-set-limit")
+  .description("Set spending limit for multiple API keys")
+  .argument("<file>", "CSV/JSON file with key information (name,hash)")
+  .requiredOption(
+    "-l, --limit <amount>",
+    "New spending limit in US dollars",
+    parseFloat
+  )
+  .option("--delimiter <char>", "Field delimiter")
+  .option("--skip-header [boolean]", "Skip first row", true)
+  .option("-y, --confirm", "Skip confirmation prompt")
+  .action(async (file, options) => {
+    try {
+      await bulkSetLimitCommand(file, options, program.opts());
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// ROTATE command
+program
+  .command("rotate")
+  .description(
+    "Rotate API key(s) (delete old, create new with same name/limit)"
+  )
+  .option("-p, --pattern <pattern>", "Filter by glob pattern")
+  .option("--hash <hash>", "Key hash to rotate")
+  .option("-y, --confirm", "Skip confirmation prompt")
+  .option("-o, --output <file>", "CSV output file (default: auto-generated)")
+  .action(async (options) => {
+    try {
+      await rotateCommand(options, program.opts());
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// BULK-ROTATE command
+program
+  .command("bulk-rotate")
+  .description("Rotate multiple API keys")
+  .argument("<file>", "CSV/JSON file with key information (name,hash)")
+  .option("--delimiter <char>", "Field delimiter")
+  .option("--skip-header [boolean]", "Skip first row", true)
+  .option("-y, --confirm", "Skip confirmation prompt")
+  .option("-o, --output <file>", "CSV output file (default: auto-generated)")
+  .action(async (file, options) => {
+    try {
+      await bulkRotateCommand(file, options, program.opts());
     } catch (error) {
       console.error(
         chalk.red("Error:"),

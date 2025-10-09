@@ -10,6 +10,7 @@ interface ListOptions {
   format?: string;
   output?: string;
   includeDisabled?: boolean;
+  full?: boolean;
 }
 
 interface GlobalOptions {
@@ -49,5 +50,5 @@ export async function listCommand(
   }
 
   const format = validateFormat(options.format || "table");
-  await outputKeyList(keyList, format, options.output);
+  await outputKeyList(keyList, format, options.output, options.full);
 }
