@@ -1,6 +1,6 @@
 # OpenRouter Key Manager
 
-A Node.js CLI tool for [creating and managing](https://openrouter.ai/docs/features/provisioning-api-keys) [OpenRouter.ai](https://openrouter.ai/) API keys with flexible tagging and bulk operations.
+A Node.js library and CLI tool for [creating and managing](https://openrouter.ai/docs/features/provisioning-api-keys) [OpenRouter.ai](https://openrouter.ai/) API keys with flexible tagging and bulk operations.
 
 ## Features
 
@@ -10,11 +10,12 @@ A Node.js CLI tool for [creating and managing](https://openrouter.ai/docs/featur
 - **Pattern Matching**: Use glob patterns to manage groups of keys
 - **Key Rotation**: Securely rotate keys while preserving names and limits
 - **CSV-Based**: Simple CSV input/output for easy integration
+- **Programmatic API**: Use as a library in your applications
 
 ## Installation
 
 ```bash
-npm install -g openrouter-key-manager
+npm install openrouter-key-manager
 ```
 
 Or run directly with `npx`:
@@ -27,8 +28,6 @@ npx openrouter-key-manager@latest [command] [options]
 
 You need an **OpenRouter.ai Provisioning API Key**. Get one from your [OpenRouter.ai account dashboard](https://openrouter.ai/settings/keys).
 
-## Authentication
-
 Provide your **OpenRouter.ai Provisioning API Key** in one of two ways:
 
 **Environment Variable (recommended):**
@@ -37,11 +36,176 @@ Provide your **OpenRouter.ai Provisioning API Key** in one of two ways:
 export OPENROUTER_PROVISIONING_KEY=your_provisioning_key_here
 ```
 
-**Command Line Argument:**
+**Command Line Argument (CLI only):**
 
 ```bash
 openrouter-key-manager --provisioning-key your_key_here [command]
 ```
+
+## Usage
+
+### CLI Usage
+
+See the [CLI Commands](#commands) section below for detailed command documentation.
+
+### Library Usage
+
+Import and use the library functions in your application:
+
+```typescript
+import {
+  create,
+  bulkCreate,
+  list,
+  destroy,
+  disable,
+  enable,
+  setLimit,
+  rotate,
+  report,
+} from "openrouter-key-manager";
+
+// Create a single key
+const key = await create({
+  provisioningKey: "your-provisioning-key",
+  email: "alice@example.com",
+  tags: ["CCP555", "student"],
+  limit: 15,
+});
+
+console.log(`Created key: ${key.apiKey}`);
+console.log(`Hash: ${key.hash}`);
+
+// List all keys
+const keys = await list({
+  provisioningKey: "your-provisioning-key",
+  includeDisabled: false,
+});
+
+console.log(`Found ${keys.length} active keys`);
+
+// Disable a key
+const result = await disable({
+  provisioningKey: "your-provisioning-key",
+  hash: key.hash,
+});
+
+console.log(`Disabled ${result.modified.length} key(s)`);
+
+// Generate an HTML report
+const reportResult = await report({
+  provisioningKey: "your-provisioning-key",
+  pattern: "*CCP555*",
+});
+
+// Save the HTML report
+await writeFile("report.html", reportResult.html);
+```
+
+#### Library API Reference
+
+All library functions accept an options object with a `provisioningKey` property, or you can pass it via environment variable:
+
+```typescript
+// Option 1: Pass provisioning key directly
+const key = await create({
+  provisioningKey: "your-key",
+  email: "alice@example.com",
+  limit: 15,
+});
+
+// Option 2: Use environment variable
+process.env.OPENROUTER_PROVISIONING_KEY = "your-key";
+const key = await create({
+  email: "alice@example.com",
+  limit: 15,
+});
+```
+
+- **`create(options)`** - Create a single API key
+
+  ```typescript
+  interface CreateOptions {
+    provisioningKey?: string;
+    email: string;
+    limit: number;
+    tags?: string[];
+    date?: string; // YYYY-MM-DD
+  }
+  ```
+
+- **`bulkCreate(file, options)`** - Create multiple keys from CSV/JSON
+
+  ```typescript
+  interface BulkCreateOptions {
+    provisioningKey?: string;
+    limit: number;
+    date?: string;
+    delimiter?: string;
+    skipHeader?: boolean;
+  }
+  ```
+
+- **`list(options)`** - List API keys
+
+  ```typescript
+  interface ListOptions {
+    provisioningKey?: string;
+    pattern?: string;
+    includeDisabled?: boolean;
+  }
+  ```
+
+- **`destroy(options)`** - Delete API keys
+
+  ```typescript
+  interface DestroyOptions {
+    provisioningKey?: string;
+    pattern?: string;
+    hash?: string;
+  }
+  ```
+
+- **`disable(options)`** / **`enable(options)`** - Disable/enable keys
+
+  ```typescript
+  interface DisableOptions {
+    provisioningKey?: string;
+    pattern?: string;
+    hash?: string;
+  }
+  ```
+
+- **`setLimit(options)`** - Update spending limits
+
+  ```typescript
+  interface SetLimitOptions {
+    provisioningKey?: string;
+    pattern?: string;
+    hash?: string;
+    limit: number;
+  }
+  ```
+
+- **`rotate(options)`** - Rotate API keys
+
+  ```typescript
+  interface RotateOptions {
+    provisioningKey?: string;
+    pattern?: string;
+    hash?: string;
+  }
+  ```
+
+- **`report(options)`** - Generate HTML usage report
+
+  ```typescript
+  interface ReportOptions {
+    provisioningKey?: string;
+    pattern?: string;
+    includeDisabled?: boolean;
+  }
+  ```
 
 ## Quick Start
 

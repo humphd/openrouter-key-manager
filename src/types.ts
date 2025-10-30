@@ -23,7 +23,7 @@ export interface OpenRouterKey {
   name: string;
   label: string;
   disabled: boolean;
-  limit?: number;
+  limit: number | null;
   limit_remaining?: number;
   usage: number;
   usage_daily: number;
@@ -43,3 +43,7 @@ export interface OpenRouterCreateKeyResponse {
 }
 
 export type OutputFormat = "table" | "json" | "csv";
+
+export interface GlobalOptions {
+  provisioningKey?: string;
+}

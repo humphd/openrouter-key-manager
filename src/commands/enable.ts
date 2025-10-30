@@ -3,18 +3,18 @@ import { getSelectedKeys } from "../lib/key-selector.js";
 import { getProvisioningKey } from "../utils/config.js";
 import type { GlobalOptions } from "../types.js";
 
-export interface DisableOptions extends GlobalOptions {
+export interface EnableOptions extends GlobalOptions {
   pattern?: string;
   hash?: string;
   confirm?: boolean;
 }
 
-export interface DisableResult {
+export interface EnableResult {
   modified: string[];
   errors: Array<{ keyName: string; error: string }>;
 }
 
-export async function disable(options: DisableOptions): Promise<DisableResult> {
+export async function enable(options: EnableOptions): Promise<EnableResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
   const client = new OpenRouterClient(provisioningKey);
   const keysToModify = await getSelectedKeys(options);
@@ -24,7 +24,7 @@ export async function disable(options: DisableOptions): Promise<DisableResult> {
 
   for (const key of keysToModify) {
     try {
-      await client.disableKey(key.hash);
+      await client.enableKey(key.hash);
       modified.push(key.name);
     } catch (error) {
       const errorMessage =

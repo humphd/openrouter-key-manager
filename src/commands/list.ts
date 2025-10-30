@@ -1,27 +1,21 @@
-import chalk from "chalk";
 import { minimatch } from "minimatch";
 import { OpenRouterClient } from "../lib/api-client.js";
-import { validateFormat } from "../lib/validators.js";
 import { getProvisioningKey } from "../utils/config.js";
-import { outputKeyList, type KeyListItem } from "../lib/output-formatter.js";
+import type { KeyListItem } from "../lib/output-formatter.js";
+import type { GlobalOptions, OutputFormat } from "../types.js";
 
-interface ListOptions {
+export interface ListOptions extends GlobalOptions {
   pattern?: string;
-  format?: string;
-  output?: string;
   includeDisabled?: boolean;
+  format?: OutputFormat;
+  output?: string;
   full?: boolean;
 }
 
-interface GlobalOptions {
-  provisioningKey?: string;
-}
+export type ListResult = KeyListItem[];
 
-export async function listCommand(
-  options: ListOptions,
-  globalOptions: GlobalOptions,
-): Promise<void> {
-  const provisioningKey = getProvisioningKey(globalOptions.provisioningKey);
+export async function list(options: ListOptions): Promise<ListResult> {
+  const provisioningKey = getProvisioningKey(options.provisioningKey);
   const { pattern, includeDisabled } = options;
 
   const client = new OpenRouterClient(provisioningKey);
@@ -33,22 +27,10 @@ export async function listCommand(
     filteredKeys = filteredKeys.filter((key) => minimatch(key.name, pattern));
   }
 
-  const keyList: KeyListItem[] = filteredKeys.map((key) => ({
+  return filteredKeys.map((key) => ({
     name: key.name,
     hash: key.hash,
     disabled: key.disabled,
     remaining: key.limit_remaining ?? null,
   }));
-
-  console.error(chalk.blue(`Found ${keyList.length} key(s)\n`));
-  if (!includeDisabled) {
-    console.error(
-      chalk.blue(
-        "TIP: use `--include-disabled` to include disabled keys as well.",
-      ),
-    );
-  }
-
-  const format = validateFormat(options.format || "table");
-  await outputKeyList(keyList, format, options.output, options.full);
 }
