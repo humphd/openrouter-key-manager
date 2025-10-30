@@ -17,13 +17,13 @@ export interface BulkRotateResult {
 
 export async function bulkRotate(
   filePath: string,
-  options: BulkRotateOptions
+  options: BulkRotateOptions,
 ): Promise<BulkRotateResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   const client = new OpenRouterClient(provisioningKey);
@@ -41,7 +41,7 @@ export async function bulkRotate(
       // Create new key with same name and limit
       const { key: newApiKey, hash: newHash } = await client.createKey(
         keyDetails.name,
-        keyDetails.limit ?? 0
+        keyDetails.limit ?? 0,
       );
 
       rotated.push({

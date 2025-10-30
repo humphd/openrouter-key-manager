@@ -15,7 +15,7 @@ export interface SelectedKey {
 }
 
 export async function getSelectedKeys(
-  options: KeySelectorOptions
+  options: KeySelectorOptions,
 ): Promise<SelectedKey[]> {
   // Validate that only one of pattern or hash is provided
   if (options.pattern && options.hash) {

@@ -24,7 +24,7 @@ export function generateHTML(keys: OpenRouterKey[]): string {
   const totalLimit = keys.reduce((sum, k) => sum + (k.limit ?? 0), 0);
   const totalRemaining = keys.reduce(
     (sum, k) => sum + (k.limit_remaining ?? 0),
-    0
+    0,
   );
   const activeKeys = keys.filter((k) => !k.disabled).length;
   const disabledKeys = keys.filter((k) => k.disabled).length;
@@ -68,7 +68,7 @@ export function generateHTML(keys: OpenRouterKey[]): string {
       <td class="number">$${k.monthly.toFixed(2)}</td>
       <td class="date">${new Date(k.createdAt).toLocaleDateString()}</td>
     </tr>
-  `
+  `,
     )
     .join("");
 

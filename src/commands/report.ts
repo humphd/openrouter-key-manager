@@ -25,7 +25,7 @@ export async function report(options: ReportOptions): Promise<ReportResult> {
   // Filter by pattern if specified
   if (options.pattern) {
     filteredKeys = filteredKeys.filter((key) =>
-      minimatch(key.name, options.pattern!)
+      minimatch(key.name, options.pattern!),
     );
   }
 

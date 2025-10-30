@@ -23,7 +23,7 @@ export interface BulkCreateResult {
 
 export async function bulkCreate(
   filePath: string,
-  options: BulkCreateOptions
+  options: BulkCreateOptions,
 ): Promise<BulkCreateResult> {
   validateLimit(options.limit);
   const date = options.date || getTodayDate();
@@ -32,7 +32,7 @@ export async function bulkCreate(
   const accounts = await parseAccountList(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   const client = new OpenRouterClient(options.provisioningKey);
@@ -44,7 +44,7 @@ export async function bulkCreate(
       const keyName = generateKeyName(account.email, account.tags, date);
       const { key: apiKey, hash } = await client.createKey(
         keyName,
-        options.limit
+        options.limit,
       );
 
       created.push({

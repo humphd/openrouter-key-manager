@@ -18,7 +18,7 @@ export interface BulkSetLimitResult {
 
 export async function bulkSetLimit(
   filePath: string,
-  options: BulkSetLimitOptions
+  options: BulkSetLimitOptions,
 ): Promise<BulkSetLimitResult> {
   validateLimit(options.limit);
 
@@ -26,7 +26,7 @@ export async function bulkSetLimit(
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   const client = new OpenRouterClient(provisioningKey);

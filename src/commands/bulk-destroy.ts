@@ -15,13 +15,13 @@ export interface BulkDestroyResult {
 
 export async function bulkDestroy(
   filePath: string,
-  options: BulkDestroyOptions
+  options: BulkDestroyOptions,
 ): Promise<BulkDestroyResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true
+    options.skipHeader ?? true,
   );
 
   const client = new OpenRouterClient(provisioningKey);

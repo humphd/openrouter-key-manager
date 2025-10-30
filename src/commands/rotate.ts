@@ -34,7 +34,7 @@ export async function rotate(options: RotateOptions): Promise<RotateResult> {
       // Create new key with same name and limit
       const { key: newApiKey, hash: newHash } = await client.createKey(
         keyDetails.name,
-        keyDetails.limit ?? 0
+        keyDetails.limit ?? 0,
       );
 
       rotated.push({

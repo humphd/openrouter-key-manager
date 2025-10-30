@@ -48,7 +48,7 @@ const { version } = packageJson;
 
 function mergeOptions<T>(
   commandOptions: T,
-  globalOptions: GlobalOptions
+  globalOptions: GlobalOptions,
 ): T & GlobalOptions {
   return { ...commandOptions, ...globalOptions };
 }
@@ -62,7 +62,7 @@ function handleCommandError(error: unknown): never {
 async function confirmAction(
   action: string,
   keys: Array<{ name: string; hash: string }>,
-  extraWarning?: string
+  extraWarning?: string,
 ): Promise<boolean> {
   console.error(chalk.yellow(`\nAbout to ${action} ${keys.length} key(s):`));
 
@@ -110,7 +110,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "Spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .requiredOption("-e, --email <email>", "Email address")
   .option("-t, --tags <tags...>", "Tags (space-separated)")
@@ -138,7 +138,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "Spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .option("-d, --date <date>", "Issue date (YYYY-MM-DD, default today)")
   .option("--delimiter <char>", "Field delimiter")
@@ -152,8 +152,8 @@ program
       console.error(
         chalk.blue(
           `Found ${result.created.length + result.errors.length} ` +
-            `account(s) in ${file}\n`
-        )
+            `account(s) in ${file}\n`,
+        ),
       );
 
       // Display progress
@@ -162,7 +162,7 @@ program
       }
       for (const { account, error } of result.errors) {
         console.error(
-          chalk.red(`✗ Failed to create key for ${account.email}: ${error}`)
+          chalk.red(`✗ Failed to create key for ${account.email}: ${error}`),
         );
       }
 
@@ -170,8 +170,8 @@ program
       if (result.created.length > 0) {
         console.error(
           chalk.blue(
-            `\n${result.created.length} key(s) created ` + `successfully\n`
-          )
+            `\n${result.created.length} key(s) created ` + `successfully\n`,
+          ),
         );
 
         const csvFile =
@@ -182,7 +182,7 @@ program
 
       if (result.errors.length > 0) {
         console.error(
-          chalk.red(`\n${result.errors.length} key(s) failed to create`)
+          chalk.red(`\n${result.errors.length} key(s) failed to create`),
         );
       }
 
@@ -212,8 +212,8 @@ program
       if (!opts.includeDisabled) {
         console.error(
           chalk.blue(
-            "TIP: use `--include-disabled` to include disabled keys as well."
-          )
+            "TIP: use `--include-disabled` to include disabled keys as well.",
+          ),
         );
       }
 
@@ -257,7 +257,7 @@ program
       }
 
       console.error(
-        chalk.blue(`\n${result.modified.length} key(s) disabled successfully`)
+        chalk.blue(`\n${result.modified.length} key(s) disabled successfully`),
       );
 
       if (result.errors.length > 0) {
@@ -265,7 +265,7 @@ program
           console.error(chalk.red(`✗ Failed to disable ${keyName}: ${error}`));
         }
         console.error(
-          chalk.red(`${result.errors.length} key(s) failed to disable`)
+          chalk.red(`${result.errors.length} key(s) failed to disable`),
         );
         process.exit(1);
       }
@@ -307,7 +307,7 @@ program
       }
 
       console.error(
-        chalk.blue(`\n${result.modified.length} key(s) enabled successfully`)
+        chalk.blue(`\n${result.modified.length} key(s) enabled successfully`),
       );
 
       if (result.errors.length > 0) {
@@ -315,7 +315,7 @@ program
           console.error(chalk.red(`✗ Failed to enable ${keyName}: ${error}`));
         }
         console.error(
-          chalk.red(`${result.errors.length} key(s) failed to enable`)
+          chalk.red(`${result.errors.length} key(s) failed to enable`),
         );
         process.exit(1);
       }
@@ -358,7 +358,7 @@ program
       }
 
       console.error(
-        chalk.blue(`\n${result.deleted.length} key(s) deleted successfully`)
+        chalk.blue(`\n${result.deleted.length} key(s) deleted successfully`),
       );
 
       if (result.errors.length > 0) {
@@ -366,7 +366,7 @@ program
           console.error(chalk.red(`✗ Failed to delete ${keyName}: ${error}`));
         }
         console.error(
-          chalk.red(`${result.errors.length} key(s) failed to delete`)
+          chalk.red(`${result.errors.length} key(s) failed to delete`),
         );
         process.exit(1);
       }
@@ -393,14 +393,14 @@ program
         const keysToDelete = await parseKeyFile(
           file,
           opts.delimiter,
-          opts.skipHeader
+          opts.skipHeader,
         );
         if (keysToDelete.length === 0) {
           console.error(chalk.yellow("No keys found to delete"));
           return;
         }
         console.error(
-          chalk.blue(`Found ${keysToDelete.length} key(s) in ${file}\n`)
+          chalk.blue(`Found ${keysToDelete.length} key(s) in ${file}\n`),
         );
 
         const confirmed = await confirmAction("delete", keysToDelete);
@@ -417,7 +417,7 @@ program
       }
 
       console.error(
-        chalk.blue(`\n${result.deleted.length} key(s) deleted successfully`)
+        chalk.blue(`\n${result.deleted.length} key(s) deleted successfully`),
       );
 
       if (result.errors.length > 0) {
@@ -425,7 +425,7 @@ program
           console.error(chalk.red(`✗ Failed to delete ${key}: ${error}`));
         }
         console.error(
-          chalk.red(`${result.errors.length} key(s) failed to delete`)
+          chalk.red(`${result.errors.length} key(s) failed to delete`),
         );
         process.exit(1);
       }
@@ -442,7 +442,7 @@ program
   .option("--include-disabled", "Include disabled keys (default false)")
   .option(
     "-o, --output <file>",
-    "Output HTML file (default: report-YYYY-MM-DD.html)"
+    "Output HTML file (default: report-YYYY-MM-DD.html)",
   )
   .action(async (options) => {
     try {
@@ -455,7 +455,7 @@ program
       await writeFile(outputFile, result.html, "utf-8");
 
       console.error(
-        chalk.blue(`Report generated for ${result.keyCount} key(s)`)
+        chalk.blue(`Report generated for ${result.keyCount} key(s)`),
       );
       console.error(chalk.green(`✓ Report written to ${outputFile}`));
     } catch (error) {
@@ -470,7 +470,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "New spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
   .option("--hash <hash>", "Key hash to update")
@@ -499,23 +499,23 @@ program
       for (const keyName of result.updated) {
         console.error(
           chalk.green(
-            `✓ Updated limit for ${keyName} to $${opts.limit.toFixed(2)}`
-          )
+            `✓ Updated limit for ${keyName} to $${opts.limit.toFixed(2)}`,
+          ),
         );
       }
 
       console.error(
-        chalk.blue(`\n${result.updated.length} key(s) updated successfully`)
+        chalk.blue(`\n${result.updated.length} key(s) updated successfully`),
       );
 
       if (result.errors.length > 0) {
         for (const { keyName, error } of result.errors) {
           console.error(
-            chalk.red(`✗ Failed to update limit for ${keyName}: ${error}`)
+            chalk.red(`✗ Failed to update limit for ${keyName}: ${error}`),
           );
         }
         console.error(
-          chalk.red(`${result.errors.length} key(s) failed to update`)
+          chalk.red(`${result.errors.length} key(s) failed to update`),
         );
         process.exit(1);
       }
@@ -532,7 +532,7 @@ program
   .requiredOption(
     "-l, --limit <amount>",
     "New spending limit in US dollars",
-    parseFloat
+    parseFloat,
   )
   .option("--delimiter <char>", "Field delimiter")
   .option("--skip-header [boolean]", "Skip first row", true)
@@ -562,13 +562,13 @@ program
       for (const keyName of result.updated) {
         console.error(
           chalk.green(
-            `✓ Updated limit for ${keyName} to $${opts.limit.toFixed(2)}`
-          )
+            `✓ Updated limit for ${keyName} to $${opts.limit.toFixed(2)}`,
+          ),
         );
       }
 
       console.error(
-        chalk.blue(`\n${result.updated.length} key(s) updated successfully`)
+        chalk.blue(`\n${result.updated.length} key(s) updated successfully`),
       );
 
       if (result.errors.length > 0) {
@@ -576,7 +576,7 @@ program
           console.error(chalk.red(`✗ Failed to update ${key}: ${error}`));
         }
         console.error(
-          chalk.red(`${result.errors.length} key(s) failed to update`)
+          chalk.red(`${result.errors.length} key(s) failed to update`),
         );
         process.exit(1);
       }
@@ -589,7 +589,7 @@ program
 program
   .command("rotate")
   .description(
-    "Rotate API key(s) (delete old, create new with same name/limit)"
+    "Rotate API key(s) (delete old, create new with same name/limit)",
   )
   .option("-p, --pattern <pattern>", "Filter by glob pattern")
   .option("--hash <hash>", "Key hash to rotate")
@@ -623,7 +623,9 @@ program
       // Output new keys
       if (result.rotated.length > 0) {
         console.error(
-          chalk.blue(`\n${result.rotated.length} key(s) rotated successfully\n`)
+          chalk.blue(
+            `\n${result.rotated.length} key(s) rotated successfully\n`,
+          ),
         );
 
         const csvFile =
@@ -633,8 +635,8 @@ program
         console.error(chalk.blue(`New keys saved to: ${csvFile}`));
         console.error(
           chalk.yellow(
-            "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid."
-          )
+            "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid.",
+          ),
         );
       }
 
@@ -644,7 +646,7 @@ program
           console.error(chalk.red(`✗ Failed to rotate ${keyName}: ${error}`));
         }
         console.error(
-          chalk.red(`\n${result.errors.length} key(s) failed to rotate`)
+          chalk.red(`\n${result.errors.length} key(s) failed to rotate`),
         );
         process.exit(1);
       }
@@ -671,7 +673,7 @@ program
         const keysToRotate = await parseKeyFile(
           file,
           opts.delimiter,
-          opts.skipHeader
+          opts.skipHeader,
         );
 
         if (keysToRotate.length === 0) {
@@ -680,7 +682,7 @@ program
         }
 
         console.error(
-          chalk.blue(`Found ${keysToRotate.length} key(s) in ${file}\n`)
+          chalk.blue(`Found ${keysToRotate.length} key(s) in ${file}\n`),
         );
         const confirmed = await confirmAction("rotate", keysToRotate);
         if (!confirmed) {
@@ -698,7 +700,9 @@ program
       // Output new keys
       if (result.rotated.length > 0) {
         console.error(
-          chalk.blue(`\n${result.rotated.length} key(s) rotated successfully\n`)
+          chalk.blue(
+            `\n${result.rotated.length} key(s) rotated successfully\n`,
+          ),
         );
 
         const csvFile =
@@ -708,8 +712,8 @@ program
         console.error(chalk.blue(`New keys saved to: ${csvFile}`));
         console.error(
           chalk.yellow(
-            "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid."
-          )
+            "\nIMPORTANT: Distribute new keys to users. Old keys are no longer valid.",
+          ),
         );
       }
 
@@ -719,7 +723,7 @@ program
           console.error(chalk.red(`✗ Failed to rotate ${key}: ${error}`));
         }
         console.error(
-          chalk.red(`\n${result.errors.length} key(s) failed to rotate`)
+          chalk.red(`\n${result.errors.length} key(s) failed to rotate`),
         );
         process.exit(1);
       }

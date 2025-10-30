@@ -17,7 +17,7 @@ export interface SetLimitResult {
 }
 
 export async function setLimit(
-  options: SetLimitOptions
+  options: SetLimitOptions,
 ): Promise<SetLimitResult> {
   validateLimit(options.limit);
 
