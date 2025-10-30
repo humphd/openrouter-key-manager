@@ -52,7 +52,7 @@ describe("OpenRouterClient", () => {
 
       const result = await client.createKey(
         "test@example.com student 2025-01-15",
-        10
+        10,
       );
 
       expect(result).toEqual({
@@ -68,7 +68,7 @@ describe("OpenRouterClient", () => {
             name: "test@example.com student 2025-01-15",
             limit: 10,
           }),
-        })
+        }),
       );
     });
 
@@ -90,16 +90,16 @@ describe("OpenRouterClient", () => {
       mockKyInstance.mockRejectedValue(
         new ApiError(
           "Unauthorized: Invalid API key - Invalid provisioning key",
-          401
-        )
+          401,
+        ),
       );
 
       await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
-        ApiError
+        ApiError,
       );
 
       await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
-        "Invalid provisioning key"
+        "Invalid provisioning key",
       );
     });
   });
@@ -149,7 +149,7 @@ describe("OpenRouterClient", () => {
       expect(result[0].hash).toBe("hash-1");
       expect(mockKyInstance).toHaveBeenCalledWith(
         "keys?include_disabled=false",
-        {}
+        {},
       );
     });
 
@@ -162,7 +162,7 @@ describe("OpenRouterClient", () => {
 
       expect(mockKyInstance).toHaveBeenCalledWith(
         "keys?include_disabled=true",
-        {}
+        {},
       );
     });
   });
@@ -211,7 +211,7 @@ describe("OpenRouterClient", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ limit: 25 }),
-        })
+        }),
       );
     });
   });
@@ -229,7 +229,7 @@ describe("OpenRouterClient", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ disabled: true }),
-        })
+        }),
       );
     });
   });
@@ -247,7 +247,7 @@ describe("OpenRouterClient", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ disabled: false }),
-        })
+        }),
       );
     });
   });
@@ -264,7 +264,7 @@ describe("OpenRouterClient", () => {
         "keys/hash-abc",
         expect.objectContaining({
           method: "DELETE",
-        })
+        }),
       );
     });
   });
@@ -302,14 +302,14 @@ describe("OpenRouterClient", () => {
       expect(mockKyInstance).toHaveBeenNthCalledWith(
         1,
         "keys?include_disabled=false",
-        {}
+        {},
       );
       expect(mockKyInstance).toHaveBeenNthCalledWith(
         2,
         "keys/hash-abc",
         expect.objectContaining({
           method: "DELETE",
-        })
+        }),
       );
     });
 
@@ -319,10 +319,10 @@ describe("OpenRouterClient", () => {
       });
 
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
-        ApiError
+        ApiError,
       );
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
-        "Key not found"
+        "Key not found",
       );
     });
   });

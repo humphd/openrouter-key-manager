@@ -67,7 +67,7 @@ export class OpenRouterClient {
         delay: (attemptCount) =>
           Math.min(
             INITIAL_BACKOFF_MS * 2 ** (attemptCount - 1),
-            MAX_RETRY_DELAY_MS
+            MAX_RETRY_DELAY_MS,
           ) +
           Math.random() * INITIAL_BACKOFF_MS,
       },
@@ -76,7 +76,7 @@ export class OpenRouterClient {
           (request) => {
             request.headers.set(
               "Authorization",
-              `Bearer ${this.provisioningKey}`
+              `Bearer ${this.provisioningKey}`,
             );
             request.headers.set("Content-Type", "application/json");
           },
@@ -93,7 +93,7 @@ export class OpenRouterClient {
 
               if (this.verbose) {
                 console.warn(
-                  `Rate limited (429). Waiting ${delay}ms before retry ${retryCount}/${options.retry.limit}`
+                  `Rate limited (429). Waiting ${delay}ms before retry ${retryCount}/${options.retry.limit}`,
                 );
               }
 
@@ -103,7 +103,7 @@ export class OpenRouterClient {
             // Handle server errors (500)
             if (status === 500 && this.verbose) {
               console.warn(
-                `Server error (500). Retry ${retryCount}/${options.retry.limit}`
+                `Server error (500). Retry ${retryCount}/${options.retry.limit}`,
               );
             }
           },
@@ -125,21 +125,21 @@ export class OpenRouterClient {
               case 401:
                 throw new ApiError(
                   `Unauthorized: Invalid API key - ${errorMessage}`,
-                  status
+                  status,
                 );
               case 404:
                 throw new ApiError(`Not found: ${errorMessage}`, status);
               case 429:
                 throw new ApiError(
                   `Rate limit exceeded: ${errorMessage}`,
-                  status
+                  status,
                 );
               case 500:
                 throw new ApiError(`Server error: ${errorMessage}`, status);
               default:
                 throw new ApiError(
                   `API request failed (${status}): ${response.statusText} - ${errorMessage}`,
-                  status
+                  status,
                 );
             }
           },
@@ -185,7 +185,7 @@ export class OpenRouterClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     try {
       const response = await this.client(endpoint, options);
@@ -200,7 +200,7 @@ export class OpenRouterClient {
         throw error;
       } else {
         throw new ApiError(
-          `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+          `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
@@ -208,7 +208,7 @@ export class OpenRouterClient {
 
   async createKey(
     keyName: string,
-    limit: number
+    limit: number,
   ): Promise<{ key: string; hash: string }> {
     const response = await this.request<OpenRouterCreateKeyResponse>("keys", {
       method: "POST",
@@ -247,7 +247,7 @@ export class OpenRouterClient {
 
   async getKey(hash: string): Promise<OpenRouterKey> {
     const response = await this.request<{ data: OpenRouterKey }>(
-      `keys/${hash}`
+      `keys/${hash}`,
     );
     return response.data;
   }
