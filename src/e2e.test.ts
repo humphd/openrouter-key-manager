@@ -69,14 +69,14 @@ function cleanup() {
 
 function createTestKey(
   email: string,
-  tags: string[] = ["e2e-test"]
+  tags: string[] = ["e2e-test"],
 ): {
   name: string;
   hash: string;
   email: string;
 } {
   run(
-    `create -e ${email} -l ${TEST_LIMIT} -t ${tags.join(" ")} -o test-output.csv`
+    `create -e ${email} -l ${TEST_LIMIT} -t ${tags.join(" ")} -o test-output.csv`,
   );
 
   const csv = readFileSync("test-output.csv", "utf-8");
@@ -101,7 +101,7 @@ describe("E2E CLI Tests", () => {
   beforeAll(() => {
     if (!process.env.OPENROUTER_PROVISIONING_KEY) {
       throw new Error(
-        "OPENROUTER_PROVISIONING_KEY environment variable not set"
+        "OPENROUTER_PROVISIONING_KEY environment variable not set",
       );
     }
 
