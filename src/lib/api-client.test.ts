@@ -1,12 +1,24 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { OpenRouterClient } from "./api-client.js";
 import { ApiError } from "../utils/errors.js";
+import ky, { HTTPError } from "ky";
+
+// Mock ky module
+vi.mock("ky");
 
 describe("OpenRouterClient", () => {
   const mockProvisioningKey = "test-provisioning-key";
   let client: OpenRouterClient;
+  let mockKyInstance: any;
 
   beforeEach(() => {
+    // Create a mock ky instance
+    mockKyInstance = vi.fn();
+    mockKyInstance.create = vi.fn().mockReturnValue(mockKyInstance);
+
+    // Mock the ky module to return our mock instance
+    vi.mocked(ky.create).mockReturnValue(mockKyInstance);
+
     client = new OpenRouterClient(mockProvisioningKey);
   });
 
@@ -34,14 +46,13 @@ describe("OpenRouterClient", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => mockResponse,
       });
 
       const result = await client.createKey(
         "test@example.com student 2025-01-15",
-        10,
+        10
       );
 
       expect(result).toEqual({
@@ -49,38 +60,46 @@ describe("OpenRouterClient", () => {
         hash: "hash-abc123",
       });
 
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys",
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys",
         expect.objectContaining({
           method: "POST",
-          headers: expect.objectContaining({
-            Authorization: `Bearer ${mockProvisioningKey}`,
-            "Content-Type": "application/json",
-          }),
           body: JSON.stringify({
             name: "test@example.com student 2025-01-15",
             limit: 10,
           }),
-        }),
+        })
       );
     });
 
     test("throws ApiError on failure", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      // Create a mock Response object
+      const mockResponse = {
         ok: false,
         status: 401,
         statusText: "Unauthorized",
-        json: async () => ({
+        headers: new Headers(),
+        json: vi.fn().mockResolvedValue({
           error: { message: "Invalid provisioning key" },
         }),
-      });
+        text: vi.fn().mockResolvedValue("Unauthorized"),
+      } as unknown as Response;
 
-      await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
-        ApiError,
+      // Mock ky to throw an ApiError (which is what happens after the
+      // afterResponse hook processes the HTTPError)
+      mockKyInstance.mockRejectedValue(
+        new ApiError(
+          "Unauthorized: Invalid API key - Invalid provisioning key",
+          401
+        )
       );
 
       await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
-        "Invalid provisioning key",
+        ApiError
+      );
+
+      await expect(client.createKey("test@example.com", 10)).rejects.toThrow(
+        "Invalid provisioning key"
       );
     });
   });
@@ -120,8 +139,7 @@ describe("OpenRouterClient", () => {
         ],
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => mockResponse,
       });
 
@@ -129,23 +147,22 @@ describe("OpenRouterClient", () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].hash).toBe("hash-1");
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys?include_disabled=false",
-        expect.any(Object),
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys?include_disabled=false",
+        {}
       );
     });
 
     test("lists keys with disabled keys", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => ({ data: [] }),
       });
 
       await client.listKeys(true);
 
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys?include_disabled=true",
-        expect.any(Object),
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys?include_disabled=true",
+        {}
       );
     });
   });
@@ -169,8 +186,7 @@ describe("OpenRouterClient", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => mockResponse,
       });
 
@@ -178,84 +194,77 @@ describe("OpenRouterClient", () => {
 
       expect(result.hash).toBe("hash-abc");
       expect(result.name).toBe("test@example.com");
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys/hash-abc",
-        expect.any(Object),
-      );
+      expect(mockKyInstance).toHaveBeenCalledWith("keys/hash-abc", {});
     });
   });
 
   describe("setKeyLimit", () => {
     test("sets key limit", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => ({}),
       });
 
       await client.setKeyLimit("hash-abc", 25);
 
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys/hash-abc",
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys/hash-abc",
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ limit: 25 }),
-        }),
+        })
       );
     });
   });
 
   describe("disableKey", () => {
     test("disables a key", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => ({}),
       });
 
       await client.disableKey("hash-abc");
 
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys/hash-abc",
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys/hash-abc",
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ disabled: true }),
-        }),
+        })
       );
     });
   });
 
   describe("enableKey", () => {
     test("enables a key", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => ({}),
       });
 
       await client.enableKey("hash-abc");
 
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys/hash-abc",
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys/hash-abc",
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ disabled: false }),
-        }),
+        })
       );
     });
   });
 
   describe("deleteKeyByHash", () => {
     test("deletes a key by hash", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => ({}),
       });
 
       await client.deleteKeyByHash("hash-abc");
 
-      expect(fetch).toHaveBeenCalledWith(
-        "https://openrouter.ai/api/v1/keys/hash-abc",
+      expect(mockKyInstance).toHaveBeenCalledWith(
+        "keys/hash-abc",
         expect.objectContaining({
           method: "DELETE",
-        }),
+        })
       );
     });
   });
@@ -279,40 +288,41 @@ describe("OpenRouterClient", () => {
         ],
       };
 
-      global.fetch = vi
-        .fn()
+      mockKyInstance
         .mockResolvedValueOnce({
-          ok: true,
           json: async () => mockListResponse,
         })
         .mockResolvedValueOnce({
-          ok: true,
           json: async () => ({}),
         });
 
       await client.deleteKey("test@example.com");
 
-      expect(fetch).toHaveBeenCalledTimes(2);
-      expect(fetch).toHaveBeenNthCalledWith(
+      expect(mockKyInstance).toHaveBeenCalledTimes(2);
+      expect(mockKyInstance).toHaveBeenNthCalledWith(
+        1,
+        "keys?include_disabled=false",
+        {}
+      );
+      expect(mockKyInstance).toHaveBeenNthCalledWith(
         2,
-        "https://openrouter.ai/api/v1/keys/hash-abc",
+        "keys/hash-abc",
         expect.objectContaining({
           method: "DELETE",
-        }),
+        })
       );
     });
 
     test("throws error if key not found", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
+      mockKyInstance.mockResolvedValue({
         json: async () => ({ data: [] }),
       });
 
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
-        ApiError,
+        ApiError
       );
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
-        "Key not found",
+        "Key not found"
       );
     });
   });
