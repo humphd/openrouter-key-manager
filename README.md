@@ -12,6 +12,11 @@ A Node.js library and CLI tool for [creating and managing](https://openrouter.ai
 - **CSV-Based**: Simple CSV input/output for easy integration
 - **Programmatic API**: Use as a library in your applications
 
+> [!NOTE]
+> The [blackboard2openrouter](https://www.npmjs.com/package/blackboard2openrouter) tool uses
+> `openrouter-key-manager` in order to simplify generating API keys for students using Blackboard
+> grade book exports.
+
 ## Installation
 
 ```bash
