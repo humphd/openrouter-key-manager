@@ -146,3 +146,9 @@ coverage/
 .vitest/
 
 *.csv
+
+test-accounts.csv
+test-keys.csv
+test-output.csv
+test-output.json
+test-report.html

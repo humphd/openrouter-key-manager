@@ -2,7 +2,7 @@ import { OpenRouterClient } from "../lib/api-client.js";
 import { parseAccountList } from "../lib/file-parser.js";
 import { generateKeyName } from "../lib/key-formatter.js";
 import { validateDate, validateLimit } from "../lib/validators.js";
-import { getTodayDate } from "../utils/config.js";
+import { getProvisioningKey, getTodayDate } from "../utils/config.js";
 import type { KeyInfo, AccountRecord, GlobalOptions } from "../types.js";
 
 export interface BulkCreateOptions extends GlobalOptions {
@@ -23,8 +23,9 @@ export interface BulkCreateResult {
 
 export async function bulkCreate(
   filePath: string,
-  options: BulkCreateOptions,
+  options: BulkCreateOptions
 ): Promise<BulkCreateResult> {
+  const provisioningKey = getProvisioningKey(options.provisioningKey);
   validateLimit(options.limit);
   const date = options.date || getTodayDate();
   validateDate(date);
@@ -32,10 +33,11 @@ export async function bulkCreate(
   const accounts = await parseAccountList(
     filePath,
     options.delimiter,
-    options.skipHeader ?? true,
+    options.skipHeader ?? true
   );
 
-  const client = new OpenRouterClient(options.provisioningKey);
+  console.log("bulk-create options", { options });
+  const client = new OpenRouterClient(provisioningKey);
   const created: KeyInfo[] = [];
   const errors: Array<{ account: AccountRecord; error: string }> = [];
 
@@ -44,7 +46,7 @@ export async function bulkCreate(
       const keyName = generateKeyName(account.email, account.tags, date);
       const { key: apiKey, hash } = await client.createKey(
         keyName,
-        options.limit,
+        options.limit
       );
 
       created.push({

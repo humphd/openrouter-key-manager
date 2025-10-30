@@ -30,7 +30,9 @@
     "format-check": "pnpm prettier-check",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
-    "test": "vitest run",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run --exclude src/e2e.test.ts",
+    "test:e2e": "pnpm build && vitest run src/e2e.test.ts",
     "test:watch": "vitest"
   },
   "license": "BSD-2-Clause",
@@ -48,6 +50,7 @@
     "@tsconfig/node24": "^24.0.1",
     "@types/inquirer": "^9.0.9",
     "@types/node": "^24.9.2",
+    "dotenv": "^17.2.3",
     "oxlint": "^1.25.0",
     "prettier": "3.6.2",
     "typescript": "^5.9.3",
