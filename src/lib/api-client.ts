@@ -54,7 +54,7 @@ export class OpenRouterClient {
     this.verbose = verbose;
 
     this.client = ky.create({
-      prefixUrl: this.baseUrl,
+      prefix: this.baseUrl,
       timeout,
       retry: {
         limit: maxRetries,
@@ -73,7 +73,7 @@ export class OpenRouterClient {
       },
       hooks: {
         beforeRequest: [
-          (request) => {
+          ({request}) => {
             request.headers.set(
               "Authorization",
               `Bearer ${this.provisioningKey}`,
@@ -109,7 +109,7 @@ export class OpenRouterClient {
           },
         ],
         afterResponse: [
-          async (_request, _options, response) => {
+          async ({response}) => {
             // Don't throw for successful responses
             if (response.ok) {
               return response;
