@@ -1,6 +1,6 @@
 {
   "name": "openrouter-key-manager",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "A Node.js Library and CLI tool for managing OpenRouter.ai API keys",
   "type": "module",
   "author": "David Humphrey <david.andrew.humphrey@gmail.com>",
