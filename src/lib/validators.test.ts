@@ -4,6 +4,7 @@ import {
   validateTags,
   validateDate,
   validateLimit,
+  validateExpiry,
   validateFormat,
 } from "./validators.js";
 import { ValidationError } from "../utils/errors.js";
@@ -68,6 +69,20 @@ describe("validateLimit", () => {
     expect(() => validateLimit(0)).toThrow(ValidationError);
     expect(() => validateLimit(-5)).toThrow(ValidationError);
     expect(() => validateLimit(NaN)).toThrow(ValidationError);
+  });
+});
+
+describe("validateExpiry", () => {
+  test("accepts expiresAt and normalizes date-only input", () => {
+    expect(validateExpiry("2027-12-31")).toBe("2027-12-31T23:59:59Z");
+  });
+
+  test("accepts expiresIn durations", () => {
+    expect(validateExpiry(undefined, "3 months")).toMatch(/Z$/);
+  });
+
+  test("rejects conflicting expiry options", () => {
+    expect(() => validateExpiry("2027-12-31", "30d")).toThrow(ValidationError);
   });
 });
 

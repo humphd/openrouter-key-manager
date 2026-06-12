@@ -97,12 +97,14 @@ export class OpenRouterClient {
   async createKey(
     keyName: string,
     limit: number,
+    expiresAt?: string,
   ): Promise<{ key: string; hash: string }> {
     try {
       const response = await this.client.apiKeys.create({
         requestBody: {
           name: keyName,
           limit,
+          expiresAt: expiresAt ? new Date(expiresAt) : undefined,
         },
       });
 

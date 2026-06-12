@@ -56,6 +56,7 @@ export {
   validateTags,
   validateDate,
   validateLimit,
+  validateExpiry,
   validateFormat,
 } from "./lib/validators.js";
 export { getSelectedKeys } from "./lib/key-selector.js";

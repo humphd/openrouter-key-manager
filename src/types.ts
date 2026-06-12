@@ -12,6 +12,7 @@ export interface KeyInfo {
   email: string;
   tags: string[];
   issuedDate: string;
+  expiresAt?: string;
   keyName: string;
   apiKey: string;
   hash: string;

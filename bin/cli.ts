@@ -115,6 +115,14 @@ program
   .requiredOption("-e, --email <email>", "Email address")
   .option("-t, --tags <tags...>", "Tags (space-separated)")
   .option("-d, --date <date>", "Issue date (YYYY-MM-DD, default today)")
+  .option(
+    "--expires-at <datetime>",
+    "Expire at a UTC date/time (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ssZ)",
+  )
+  .option(
+    "--expires-in <duration>",
+    'Expire after a duration like "30d", "12h", or "3 months"',
+  )
   .option("-o, --output <file>", "CSV output file (default: auto-generated)")
   .action(async (options) => {
     try {
@@ -141,6 +149,14 @@ program
     parseFloat,
   )
   .option("-d, --date <date>", "Issue date (YYYY-MM-DD, default today)")
+  .option(
+    "--expires-at <datetime>",
+    "Expire at a UTC date/time (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ssZ)",
+  )
+  .option(
+    "--expires-in <duration>",
+    'Expire after a duration like "30d", "12h", or "3 months"',
+  )
   .option("--delimiter <char>", "Field delimiter")
   .option("--skip-header [boolean]", "Skip first row", true)
   .option("-o, --output <file>", "CSV output file (default: auto-generated)")

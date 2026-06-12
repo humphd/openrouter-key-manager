@@ -55,6 +55,30 @@ describe("OpenRouterClient", () => {
         requestBody: {
           name: "test@example.com student 2025-01-15",
           limit: 10,
+          expiresAt: undefined,
+        },
+      });
+    });
+
+    test("passes expires_at when provided", async () => {
+      mockApiKeys.create.mockResolvedValue({
+        key: "sk-or-v1-abc123",
+        data: {
+          hash: "hash-abc123",
+        },
+      });
+
+      await client.createKey(
+        "test@example.com student 2025-01-15",
+        10,
+        "2027-12-31T23:59:59Z",
+      );
+
+      expect(mockApiKeys.create).toHaveBeenCalledWith({
+        requestBody: {
+          name: "test@example.com student 2025-01-15",
+          limit: 10,
+          expiresAt: new Date("2027-12-31T23:59:59Z"),
         },
       });
     });

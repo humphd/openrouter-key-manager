@@ -76,6 +76,7 @@ const key = await create({
   email: "alice@example.com",
   tags: ["CCP555", "student"],
   limit: 15,
+  expiresIn: "3 months",
 });
 
 console.log(`Created key: ${key.apiKey}`);
@@ -117,6 +118,7 @@ const key = await create({
   provisioningKey: "your-key",
   email: "alice@example.com",
   limit: 15,
+  expiresAt: "2027-12-31",
 });
 
 // Option 2: Use environment variable
@@ -124,6 +126,7 @@ process.env.OPENROUTER_PROVISIONING_KEY = "your-key";
 const key = await create({
   email: "alice@example.com",
   limit: 15,
+  expiresIn: "30d",
 });
 ```
 
@@ -136,6 +139,8 @@ const key = await create({
     limit: number;
     tags?: string[];
     date?: string; // YYYY-MM-DD
+    expiresAt?: string; // YYYY-MM-DD or YYYY-MM-DDTHH:mm:ssZ
+    expiresIn?: string; // e.g. 30d, 12h, 3 months
   }
   ```
 
@@ -146,6 +151,8 @@ const key = await create({
     provisioningKey?: string;
     limit: number;
     date?: string;
+    expiresAt?: string;
+    expiresIn?: string;
     delimiter?: string;
     skipHeader?: boolean;
   }
@@ -231,6 +238,16 @@ Use this file to create keys for each user with the specified spending limit (li
 
 ```bash
 openrouter-key-manager bulk-create --limit 15 accounts.csv
+```
+
+You can also create keys with an expiration date or relative lifetime:
+
+```bash
+# Expire at the end of 2027-12-31 UTC
+openrouter-key-manager bulk-create --limit 15 --expires-at 2027-12-31 accounts.csv
+
+# Expire 3 months from now
+openrouter-key-manager bulk-create --limit 15 --expires-in "3 months" accounts.csv
 ```
 
 This will generate API Keys for all users in `accounts.csv` and create a CSV file (e.g., `CCP555-student-2025-01-15.csv`) containing the newly created keys:
@@ -345,8 +362,10 @@ openrouter-key-manager create [options]
 
 **Optional:**
 
-- `-t, --tags <tags...>` - Space-separated tags (e.g., `"CCP555 student"`)
+- `-t, --tags <tags...>` - Multiple tags passed as separate arguments (e.g., `--tags CCP555 student`)
 - `-d, --date <date>` - Issue date in `YYYY-MM-DD` format (default: today)
+- `--expires-at <datetime>` - Expire at a UTC date/time (`YYYY-MM-DD` or `YYYY-MM-DDTHH:mm:ssZ`)
+- `--expires-in <duration>` - Expire after a duration like `30d`, `12h`, or `3 months`
 - `-o, --output <file>` - CSV output filename (default: auto-generated)
 
 **Examples:**
@@ -356,12 +375,24 @@ openrouter-key-manager create [options]
 openrouter-key-manager create \
   --limit 10 \
   --email alice@example.com \
-  --tags "CCP555 student"
+  --tags CCP555 student
 
 # Create key without tags
 openrouter-key-manager create \
   --limit 10 \
   --email bob@example.com
+
+# Create key that expires at the end of a UTC day
+openrouter-key-manager create \
+  --limit 10 \
+  --email alice@example.com \
+  --expires-at 2027-12-31
+
+# Create key that expires after 90 days
+openrouter-key-manager create \
+  --limit 10 \
+  --email alice@example.com \
+  --expires-in 90d
 
 # Specify custom output filename
 openrouter-key-manager create \
@@ -407,6 +438,8 @@ openrouter-key-manager bulk-create [options] <file>
 **Optional:**
 
 - `-d, --date <date>` - Issue date in `YYYY-MM-DD` format (default: today)
+- `--expires-at <datetime>` - Expire at a UTC date/time (`YYYY-MM-DD` or `YYYY-MM-DDTHH:mm:ssZ`)
+- `--expires-in <duration>` - Expire after a duration like `30d`, `12h`, or `3 months`
 - `--delimiter <char>` - Field delimiter (auto-detected: `.csv`=`,`,
   `.tsv`=`\t`)
 - `--skip-header [boolean]` - Skip first row (default: `true`)
@@ -437,6 +470,12 @@ dave@example.com
 ```bash
 # Create keys with default output filename
 openrouter-key-manager bulk-create --limit 10 accounts.csv
+
+# Create keys that expire at the end of 2027-12-31 UTC
+openrouter-key-manager bulk-create --limit 10 --expires-at 2027-12-31 accounts.csv
+
+# Create keys that expire in 3 months
+openrouter-key-manager bulk-create --limit 10 --expires-in "3 months" accounts.csv
 
 # Specify custom output filename
 openrouter-key-manager bulk-create \
@@ -1120,6 +1159,7 @@ dave@example.com,CCP555,TA
 ```bash
 openrouter-key-manager bulk-create \
   --limit 15 \
+  --expires-in "4 months" \
   --output ccp555-winter2025.csv \
   students.csv
 ```

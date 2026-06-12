@@ -1,7 +1,11 @@
 import { OpenRouterClient } from "../lib/api-client.js";
 import { parseAccountList } from "../lib/file-parser.js";
 import { generateKeyName } from "../lib/key-formatter.js";
-import { validateDate, validateLimit } from "../lib/validators.js";
+import {
+  validateDate,
+  validateExpiry,
+  validateLimit,
+} from "../lib/validators.js";
 import { getProvisioningKey, getTodayDate } from "../utils/config.js";
 import type { KeyInfo, AccountRecord, GlobalOptions } from "../types.js";
 
@@ -9,6 +13,8 @@ export interface BulkCreateOptions extends GlobalOptions {
   provisioningKey: string;
   limit: number;
   date?: string;
+  expiresAt?: string;
+  expiresIn?: string;
   delimiter?: string;
   skipHeader?: boolean;
   output?: string;
@@ -29,6 +35,7 @@ export async function bulkCreate(
   validateLimit(options.limit);
   const date = options.date || getTodayDate();
   validateDate(date);
+  const expiresAt = validateExpiry(options.expiresAt, options.expiresIn);
 
   const accounts = await parseAccountList(
     filePath,
@@ -36,7 +43,6 @@ export async function bulkCreate(
     options.skipHeader ?? true,
   );
 
-  console.log("bulk-create options", { options });
   const client = new OpenRouterClient(provisioningKey);
   const created: KeyInfo[] = [];
   const errors: Array<{ account: AccountRecord; error: string }> = [];
@@ -47,12 +53,14 @@ export async function bulkCreate(
       const { key: apiKey, hash } = await client.createKey(
         keyName,
         options.limit,
+        expiresAt,
       );
 
       created.push({
         email: account.email,
         tags: account.tags,
         issuedDate: date,
+        expiresAt,
         keyName,
         apiKey,
         hash,

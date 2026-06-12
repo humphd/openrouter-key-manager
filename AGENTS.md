@@ -68,6 +68,7 @@ Common scripts from `package.json`:
 
 ## When making changes
 
+- Always run `pnpm check` after making any code or documentation change, and fix any issues before considering the work complete.
 - Update `README.md` if CLI flags, behavior, output formats, or examples change.
 - If adding a new command, ensure:
   - implementation exists under `src/commands/`

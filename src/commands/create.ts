@@ -6,6 +6,7 @@ import {
   validateTags,
   validateDate,
   validateLimit,
+  validateExpiry,
 } from "../lib/validators.js";
 import { getProvisioningKey, getTodayDate } from "../utils/config.js";
 import type { GlobalOptions, KeyInfo } from "../types.js";
@@ -15,6 +16,8 @@ export interface CreateOptions extends GlobalOptions {
   email: string;
   tags?: string[];
   date?: string;
+  expiresAt?: string;
+  expiresIn?: string;
   output?: string;
 }
 
@@ -29,10 +32,15 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
   validateLimit(options.limit);
   const date = options.date || getTodayDate();
   validateDate(date);
+  const expiresAt = validateExpiry(options.expiresAt, options.expiresIn);
 
   const client = new OpenRouterClient(provisioningKey);
   const keyName = generateKeyName(options.email, tags, date);
-  const { key: apiKey, hash } = await client.createKey(keyName, options.limit);
+  const { key: apiKey, hash } = await client.createKey(
+    keyName,
+    options.limit,
+    expiresAt,
+  );
 
   console.error(chalk.green(`✓ Created key for ${options.email}`));
 
@@ -40,6 +48,7 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
     email: options.email,
     tags,
     issuedDate: date,
+    expiresAt,
     keyName,
     apiKey,
     hash,

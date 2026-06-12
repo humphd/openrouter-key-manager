@@ -1,4 +1,5 @@
 import { ValidationError } from "../utils/errors.js";
+import { resolveExpiresAt } from "./expiry.js";
 import type { OutputFormat } from "../types.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,6 +55,13 @@ export function validateLimit(limit: number): number {
     throw new ValidationError("Limit must be a positive number");
   }
   return limit;
+}
+
+export function validateExpiry(
+  expiresAt?: string,
+  expiresIn?: string,
+): string | undefined {
+  return resolveExpiresAt(expiresAt, expiresIn);
 }
 
 export function validateFormat(format: string): OutputFormat {
