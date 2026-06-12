@@ -11,7 +11,6 @@ const MAX_BACKOFF_MS = 60_000;
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_RETRY_DELAY_MS = 30_000;
 
-
 export interface OpenRouterClientOptions {
   /**
    * Request timeout in milliseconds
@@ -57,7 +56,10 @@ export class OpenRouterClient {
       return error;
     }
 
-    if (error instanceof OpenRouterError || error instanceof OpenRouterDefaultError) {
+    if (
+      error instanceof OpenRouterError ||
+      error instanceof OpenRouterDefaultError
+    ) {
       const status = error.statusCode;
       const errorMessage = error.body || error.message;
 
@@ -76,7 +78,10 @@ export class OpenRouterClient {
         case 500:
           return new ApiError(`Server error: ${errorMessage}`, status);
         default:
-          return new ApiError(`API request failed (${status}): ${errorMessage}`, status);
+          return new ApiError(
+            `API request failed (${status}): ${errorMessage}`,
+            status,
+          );
       }
     }
 
