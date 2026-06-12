@@ -31,6 +31,6 @@ export async function list(options: ListOptions): Promise<ListResult> {
     name: key.name,
     hash: key.hash,
     disabled: key.disabled,
-    remaining: key.limit_remaining ?? null,
+    remaining: key.limitRemaining ?? null,
   }));
 }

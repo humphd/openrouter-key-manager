@@ -1,24 +1,27 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { OpenRouterClient } from "./api-client.js";
 import { ApiError } from "../utils/errors.js";
-import ky, { HTTPError } from "ky";
 
-// Mock ky module
-vi.mock("ky");
+const mockApiKeys = {
+  create: vi.fn(),
+  list: vi.fn(),
+  get: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock("@openrouter/sdk", () => ({
+  OpenRouter: class {
+    apiKeys = mockApiKeys;
+  },
+}));
 
 describe("OpenRouterClient", () => {
   const mockProvisioningKey = "test-provisioning-key";
   let client: OpenRouterClient;
-  let mockKyInstance: any;
 
   beforeEach(() => {
-    // Create a mock ky instance
-    mockKyInstance = vi.fn();
-    mockKyInstance.create = vi.fn().mockReturnValue(mockKyInstance);
-
-    // Mock the ky module to return our mock instance
-    vi.mocked(ky.create).mockReturnValue(mockKyInstance);
-
+    vi.clearAllMocks();
     client = new OpenRouterClient(mockProvisioningKey);
   });
 
@@ -33,22 +36,10 @@ describe("OpenRouterClient", () => {
         data: {
           hash: "hash-abc123",
           name: "test@example.com student 2025-01-15",
-          label: "",
-          disabled: false,
-          usage: 0,
-          usage_daily: 0,
-          usage_weekly: 0,
-          usage_monthly: 0,
-          limit: 10,
-          limit_remaining: 10,
-          created_at: "2025-01-15T00:00:00Z",
-          updated_at: null,
         },
       };
 
-      mockKyInstance.mockResolvedValue({
-        json: async () => mockResponse,
-      });
+      mockApiKeys.create.mockResolvedValue(mockResponse);
 
       const result = await client.createKey(
         "test@example.com student 2025-01-15",
@@ -60,34 +51,16 @@ describe("OpenRouterClient", () => {
         hash: "hash-abc123",
       });
 
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            name: "test@example.com student 2025-01-15",
-            limit: 10,
-          }),
-        }),
-      );
+      expect(mockApiKeys.create).toHaveBeenCalledWith({
+        requestBody: {
+          name: "test@example.com student 2025-01-15",
+          limit: 10,
+        },
+      });
     });
 
     test("throws ApiError on failure", async () => {
-      // Create a mock Response object
-      const mockResponse = {
-        ok: false,
-        status: 401,
-        statusText: "Unauthorized",
-        headers: new Headers(),
-        json: vi.fn().mockResolvedValue({
-          error: { message: "Invalid provisioning key" },
-        }),
-        text: vi.fn().mockResolvedValue("Unauthorized"),
-      } as unknown as Response;
-
-      // Mock ky to throw an ApiError (which is what happens after the
-      // afterResponse hook processes the HTTPError)
-      mockKyInstance.mockRejectedValue(
+      mockApiKeys.create.mockRejectedValue(
         new ApiError(
           "Unauthorized: Invalid API key - Invalid provisioning key",
           401,
@@ -114,13 +87,13 @@ describe("OpenRouterClient", () => {
             label: "",
             disabled: false,
             usage: 5.5,
-            usage_daily: 1.0,
-            usage_weekly: 3.0,
-            usage_monthly: 5.5,
+            usageDaily: 1.0,
+            usageWeekly: 3.0,
+            usageMonthly: 5.5,
             limit: 10,
-            limit_remaining: 4.5,
-            created_at: "2025-01-15T00:00:00Z",
-            updated_at: null,
+            limitRemaining: 4.5,
+            createdAt: "2025-01-15T00:00:00Z",
+            updatedAt: null,
           },
           {
             hash: "hash-2",
@@ -128,41 +101,89 @@ describe("OpenRouterClient", () => {
             label: "",
             disabled: false,
             usage: 2.0,
-            usage_daily: 0.5,
-            usage_weekly: 1.5,
-            usage_monthly: 2.0,
+            usageDaily: 0.5,
+            usageWeekly: 1.5,
+            usageMonthly: 2.0,
             limit: 15,
-            limit_remaining: 13.0,
-            created_at: "2025-01-14T00:00:00Z",
-            updated_at: null,
+            limitRemaining: 13.0,
+            createdAt: "2025-01-14T00:00:00Z",
+            updatedAt: null,
           },
         ],
       };
 
-      mockKyInstance.mockResolvedValue({
-        json: async () => mockResponse,
-      });
+      mockApiKeys.list
+        .mockResolvedValueOnce(mockResponse)
+        .mockResolvedValueOnce({ data: [] });
 
       const result = await client.listKeys(false);
 
       expect(result).toHaveLength(2);
       expect(result[0].hash).toBe("hash-1");
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys?include_disabled=false",
-        {},
-      );
+      expect(mockApiKeys.list).toHaveBeenNthCalledWith(1, {
+        includeDisabled: false,
+        offset: 0,
+      });
+      expect(mockApiKeys.list).toHaveBeenNthCalledWith(2, {
+        includeDisabled: false,
+        offset: 2,
+      });
     });
 
     test("lists keys with disabled keys", async () => {
-      mockKyInstance.mockResolvedValue({
-        json: async () => ({ data: [] }),
-      });
+      mockApiKeys.list.mockResolvedValue({ data: [] });
 
       await client.listKeys(true);
 
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys?include_disabled=true",
-        {},
+      expect(mockApiKeys.list).toHaveBeenCalledWith({
+        includeDisabled: true,
+        offset: 0,
+      });
+    });
+
+    test("deduplicates overlapping pages and stops when pagination makes no progress", async () => {
+      const firstPage = {
+        data: [
+          {
+            hash: "hash-1",
+            name: "key1",
+            label: "",
+            disabled: false,
+            usage: 5.5,
+            usageDaily: 1.0,
+            usageWeekly: 3.0,
+            usageMonthly: 5.5,
+            limit: 10,
+            limitRemaining: 4.5,
+            createdAt: "2025-01-15T00:00:00Z",
+            updatedAt: null,
+          },
+        ],
+      };
+
+      mockApiKeys.list
+        .mockResolvedValueOnce(firstPage)
+        .mockResolvedValueOnce(firstPage);
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const verboseClient = new OpenRouterClient(mockProvisioningKey, {
+        verbose: true,
+      });
+
+      const result = await verboseClient.listKeys(false);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].hash).toBe("hash-1");
+      expect(mockApiKeys.list).toHaveBeenNthCalledWith(1, {
+        includeDisabled: false,
+        offset: 0,
+      });
+      expect(mockApiKeys.list).toHaveBeenNthCalledWith(2, {
+        includeDisabled: false,
+        offset: 1,
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        "API key pagination made no progress; stopping to avoid an infinite loop.",
       );
     });
   });
@@ -176,96 +197,72 @@ describe("OpenRouterClient", () => {
           label: "",
           disabled: false,
           usage: 5.0,
-          usage_daily: 1.0,
-          usage_weekly: 3.0,
-          usage_monthly: 5.0,
+          usageDaily: 1.0,
+          usageWeekly: 3.0,
+          usageMonthly: 5.0,
           limit: 10,
-          limit_remaining: 5.0,
-          created_at: "2025-01-15T00:00:00Z",
-          updated_at: null,
+          limitRemaining: 5.0,
+          createdAt: "2025-01-15T00:00:00Z",
+          updatedAt: null,
         },
       };
 
-      mockKyInstance.mockResolvedValue({
-        json: async () => mockResponse,
-      });
+      mockApiKeys.get.mockResolvedValue(mockResponse);
 
       const result = await client.getKey("hash-abc");
 
       expect(result.hash).toBe("hash-abc");
       expect(result.name).toBe("test@example.com");
-      expect(mockKyInstance).toHaveBeenCalledWith("keys/hash-abc", {});
+      expect(mockApiKeys.get).toHaveBeenCalledWith({ hash: "hash-abc" });
     });
   });
 
   describe("setKeyLimit", () => {
     test("sets key limit", async () => {
-      mockKyInstance.mockResolvedValue({
-        json: async () => ({}),
-      });
+      mockApiKeys.update.mockResolvedValue({ data: {} });
 
       await client.setKeyLimit("hash-abc", 25);
 
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys/hash-abc",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ limit: 25 }),
-        }),
-      );
+      expect(mockApiKeys.update).toHaveBeenCalledWith({
+        hash: "hash-abc",
+        requestBody: { limit: 25 },
+      });
     });
   });
 
   describe("disableKey", () => {
     test("disables a key", async () => {
-      mockKyInstance.mockResolvedValue({
-        json: async () => ({}),
-      });
+      mockApiKeys.update.mockResolvedValue({ data: {} });
 
       await client.disableKey("hash-abc");
 
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys/hash-abc",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ disabled: true }),
-        }),
-      );
+      expect(mockApiKeys.update).toHaveBeenCalledWith({
+        hash: "hash-abc",
+        requestBody: { disabled: true },
+      });
     });
   });
 
   describe("enableKey", () => {
     test("enables a key", async () => {
-      mockKyInstance.mockResolvedValue({
-        json: async () => ({}),
-      });
+      mockApiKeys.update.mockResolvedValue({ data: {} });
 
       await client.enableKey("hash-abc");
 
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys/hash-abc",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ disabled: false }),
-        }),
-      );
+      expect(mockApiKeys.update).toHaveBeenCalledWith({
+        hash: "hash-abc",
+        requestBody: { disabled: false },
+      });
     });
   });
 
   describe("deleteKeyByHash", () => {
     test("deletes a key by hash", async () => {
-      mockKyInstance.mockResolvedValue({
-        json: async () => ({}),
-      });
+      mockApiKeys.delete.mockResolvedValue({});
 
       await client.deleteKeyByHash("hash-abc");
 
-      expect(mockKyInstance).toHaveBeenCalledWith(
-        "keys/hash-abc",
-        expect.objectContaining({
-          method: "DELETE",
-        }),
-      );
+      expect(mockApiKeys.delete).toHaveBeenCalledWith({ hash: "hash-abc" });
     });
   });
 
@@ -279,44 +276,35 @@ describe("OpenRouterClient", () => {
             label: "",
             disabled: false,
             usage: 0,
-            usage_daily: 0,
-            usage_weekly: 0,
-            usage_monthly: 0,
-            created_at: "2025-01-15T00:00:00Z",
-            updated_at: null,
+            usageDaily: 0,
+            usageWeekly: 0,
+            usageMonthly: 0,
+            createdAt: "2025-01-15T00:00:00Z",
+            updatedAt: null,
           },
         ],
       };
 
-      mockKyInstance
-        .mockResolvedValueOnce({
-          json: async () => mockListResponse,
-        })
-        .mockResolvedValueOnce({
-          json: async () => ({}),
-        });
+      mockApiKeys.list
+        .mockResolvedValueOnce(mockListResponse)
+        .mockResolvedValueOnce({ data: [] });
+      mockApiKeys.delete.mockResolvedValueOnce({});
 
       await client.deleteKey("test@example.com");
 
-      expect(mockKyInstance).toHaveBeenCalledTimes(2);
-      expect(mockKyInstance).toHaveBeenNthCalledWith(
-        1,
-        "keys?include_disabled=false",
-        {},
-      );
-      expect(mockKyInstance).toHaveBeenNthCalledWith(
-        2,
-        "keys/hash-abc",
-        expect.objectContaining({
-          method: "DELETE",
-        }),
-      );
+      expect(mockApiKeys.list).toHaveBeenNthCalledWith(1, {
+        includeDisabled: false,
+        offset: 0,
+      });
+      expect(mockApiKeys.list).toHaveBeenNthCalledWith(2, {
+        includeDisabled: false,
+        offset: 1,
+      });
+      expect(mockApiKeys.delete).toHaveBeenCalledWith({ hash: "hash-abc" });
     });
 
     test("throws error if key not found", async () => {
-      mockKyInstance.mockResolvedValue({
-        json: async () => ({ data: [] }),
-      });
+      mockApiKeys.list.mockResolvedValue({ data: [] });
 
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
         ApiError,

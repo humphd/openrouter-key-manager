@@ -17,30 +17,16 @@ export interface KeyInfo {
   hash: string;
 }
 
-/* https://openrouter.ai/docs/features/provisioning-api-keys#response-format */
-export interface OpenRouterKey {
-  hash: string;
-  name: string;
-  label: string;
-  disabled: boolean;
-  limit: number | null;
-  limit_remaining?: number;
-  usage: number;
-  usage_daily: number;
-  usage_weekly: number;
-  usage_monthly: number;
-  created_at: string;
-  updated_at: string | null;
-}
+import type {
+  CreateKeysResponse,
+  GetKeyData,
+  ListData,
+  ListResponse,
+} from "@openrouter/sdk/models/operations";
 
-export interface OpenRouterKeysResponse {
-  data: OpenRouterKey[];
-}
-
-export interface OpenRouterCreateKeyResponse {
-  data: OpenRouterKey;
-  key: string;
-}
+export type OpenRouterKey = ListData | GetKeyData;
+export type OpenRouterKeysResponse = ListResponse;
+export type OpenRouterCreateKeyResponse = CreateKeysResponse;
 
 export type OutputFormat = "table" | "json" | "csv";
 

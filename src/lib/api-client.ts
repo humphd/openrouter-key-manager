@@ -1,28 +1,18 @@
-import ky, { HTTPError, TimeoutError } from "ky";
+import { OpenRouter } from "@openrouter/sdk";
+import {
+  OpenRouterDefaultError,
+  OpenRouterError,
+} from "@openrouter/sdk/models/errors";
 import { ApiError } from "../utils/errors.js";
-import type {
-  OpenRouterKey,
-  OpenRouterKeysResponse,
-  OpenRouterCreateKeyResponse,
-} from "../types.js";
+import type { GetKeyData, ListData } from "@openrouter/sdk/models/operations";
 
-const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_RATE_LIMIT_DELAY_MS = 5_000;
-const MILLISECONDS_PER_SECOND = 1_000;
 const MAX_BACKOFF_MS = 60_000;
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_RETRY_DELAY_MS = 30_000;
 
-const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
 
 export interface OpenRouterClientOptions {
-  /**
-   * Maximum number of retry attempts for failed requests
-   * @default 3
-   */
-  maxRetries?: number;
-
   /**
    * Request timeout in milliseconds
    * @default 30000
@@ -37,234 +27,186 @@ export interface OpenRouterClientOptions {
 }
 
 export class OpenRouterClient {
-  private readonly provisioningKey: string;
-  private readonly baseUrl = "https://openrouter.ai/api/v1";
-  private readonly client: typeof ky;
+  private readonly client: OpenRouter;
   private readonly verbose: boolean;
 
   constructor(provisioningKey: string, options: OpenRouterClientOptions = {}) {
-    this.provisioningKey = provisioningKey;
-
-    const {
-      maxRetries = DEFAULT_MAX_RETRIES,
-      timeout = DEFAULT_TIMEOUT_MS,
-      verbose = false,
-    } = options;
+    const { timeout = DEFAULT_TIMEOUT_MS, verbose = false } = options;
 
     this.verbose = verbose;
 
-    this.client = ky.create({
-      prefix: this.baseUrl,
-      timeout,
-      retry: {
-        limit: maxRetries,
-        methods: ["get", "post", "put", "patch", "delete"],
-        // Only retry on server errors and rate limits
-        // Don't retry 400, 401, 404 (client errors)
-        statusCodes: RETRYABLE_STATUS_CODES,
-        backoffLimit: MAX_BACKOFF_MS,
-        // Exponential backoff with jitter
-        delay: (attemptCount) =>
-          Math.min(
-            INITIAL_BACKOFF_MS * 2 ** (attemptCount - 1),
-            MAX_RETRY_DELAY_MS,
-          ) +
-          Math.random() * INITIAL_BACKOFF_MS,
+    this.client = new OpenRouter({
+      apiKey: provisioningKey,
+      timeoutMs: timeout,
+      retryConfig: {
+        strategy: "backoff",
+        backoff: {
+          initialInterval: INITIAL_BACKOFF_MS,
+          maxInterval: MAX_RETRY_DELAY_MS,
+          exponent: 2,
+          maxElapsedTime: MAX_BACKOFF_MS,
+        },
+        retryConnectionErrors: true,
       },
-      hooks: {
-        beforeRequest: [
-          ({request}) => {
-            request.headers.set(
-              "Authorization",
-              `Bearer ${this.provisioningKey}`,
-            );
-            request.headers.set("Content-Type", "application/json");
-          },
-        ],
-        beforeRetry: [
-          async ({ options, error, retryCount }) => {
-            if (!(error instanceof HTTPError)) return;
-
-            const { status } = error.response;
-
-            // Handle rate limiting (429)
-            if (status === 429) {
-              const delay = this.calculateRateLimitDelay(error.response);
-
-              if (this.verbose) {
-                console.warn(
-                  `Rate limited (429). Waiting ${delay}ms before retry ${retryCount}/${options.retry.limit}`,
-                );
-              }
-
-              await new Promise((resolve) => setTimeout(resolve, delay));
-            }
-
-            // Handle server errors (500)
-            if (status === 500 && this.verbose) {
-              console.warn(
-                `Server error (500). Retry ${retryCount}/${options.retry.limit}`,
-              );
-            }
-          },
-        ],
-        afterResponse: [
-          async ({response}) => {
-            // Don't throw for successful responses
-            if (response.ok) {
-              return response;
-            }
-
-            const errorMessage = await this.parseErrorMessage(response);
-            const { status } = response;
-
-            // Map status codes to appropriate error messages
-            switch (status) {
-              case 400:
-                throw new ApiError(`Bad request: ${errorMessage}`, status);
-              case 401:
-                throw new ApiError(
-                  `Unauthorized: Invalid API key - ${errorMessage}`,
-                  status,
-                );
-              case 404:
-                throw new ApiError(`Not found: ${errorMessage}`, status);
-              case 429:
-                throw new ApiError(
-                  `Rate limit exceeded: ${errorMessage}`,
-                  status,
-                );
-              case 500:
-                throw new ApiError(`Server error: ${errorMessage}`, status);
-              default:
-                throw new ApiError(
-                  `API request failed (${status}): ${response.statusText} - ${errorMessage}`,
-                  status,
-                );
-            }
-          },
-        ],
-      },
+      debugLogger: verbose ? console : undefined,
     });
   }
 
-  private calculateRateLimitDelay(response: Response): number {
-    const retryAfter = response.headers.get("Retry-After");
-    const resetTime = response.headers.get("X-RateLimit-Reset");
-
-    if (retryAfter) {
-      return parseInt(retryAfter, 10) * MILLISECONDS_PER_SECOND;
+  private toApiError(error: unknown): ApiError {
+    if (error instanceof ApiError) {
+      return error;
     }
 
-    if (resetTime) {
-      const resetMs = parseInt(resetTime, 10) * MILLISECONDS_PER_SECOND;
-      return Math.max(resetMs - Date.now(), MILLISECONDS_PER_SECOND);
-    }
+    if (error instanceof OpenRouterError || error instanceof OpenRouterDefaultError) {
+      const status = error.statusCode;
+      const errorMessage = error.body || error.message;
 
-    return DEFAULT_RATE_LIMIT_DELAY_MS;
-  }
-
-  private async parseErrorMessage(response: Response): Promise<string> {
-    try {
-      const errorJson: unknown = await response.json();
-      if (typeof errorJson === "object" && errorJson !== null) {
-        const err = errorJson as Record<string, unknown>;
-        const nestedError = err.error as Record<string, unknown> | undefined;
-        return (
-          (nestedError?.message as string) ||
-          (err.message as string) ||
-          JSON.stringify(errorJson)
-        );
-      } else {
-        return JSON.stringify(errorJson);
-      }
-    } catch {
-      return await response.text();
-    }
-  }
-
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-  ): Promise<T> {
-    try {
-      const response = await this.client(endpoint, options);
-      return await response.json<T>();
-    } catch (error) {
-      if (error instanceof HTTPError) {
-        // Error already handled in afterResponse hook
-        throw error;
-      } else if (error instanceof TimeoutError) {
-        throw new ApiError("Request timeout", 408);
-      } else if (error instanceof ApiError) {
-        throw error;
-      } else {
-        throw new ApiError(
-          `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+      switch (status) {
+        case 400:
+          return new ApiError(`Bad request: ${errorMessage}`, status);
+        case 401:
+          return new ApiError(
+            `Unauthorized: Invalid API key - ${errorMessage}`,
+            status,
+          );
+        case 404:
+          return new ApiError(`Not found: ${errorMessage}`, status);
+        case 429:
+          return new ApiError(`Rate limit exceeded: ${errorMessage}`, status);
+        case 500:
+          return new ApiError(`Server error: ${errorMessage}`, status);
+        default:
+          return new ApiError(`API request failed (${status}): ${errorMessage}`, status);
       }
     }
+
+    if (error instanceof Error && error.name === "RequestTimeoutError") {
+      return new ApiError("Request timeout", 408);
+    }
+
+    return new ApiError(
+      `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 
   async createKey(
     keyName: string,
     limit: number,
   ): Promise<{ key: string; hash: string }> {
-    const response = await this.request<OpenRouterCreateKeyResponse>("keys", {
-      method: "POST",
-      body: JSON.stringify({
-        name: keyName,
-        limit,
-      }),
-    });
+    try {
+      const response = await this.client.apiKeys.create({
+        requestBody: {
+          name: keyName,
+          limit,
+        },
+      });
 
-    return { key: response.key, hash: response.data.hash };
+      return { key: response.key, hash: response.data.hash };
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
-  async listKeys(includeDisabled: boolean = false): Promise<OpenRouterKey[]> {
-    const path = `keys?include_disabled=${includeDisabled ? "true" : "false"}`;
-    const response = await this.request<OpenRouterKeysResponse>(path);
-    return response.data;
+  async listKeys(includeDisabled: boolean = false): Promise<ListData[]> {
+    try {
+      const allKeys: ListData[] = [];
+      const seenHashes = new Set<string>();
+      let offset = 0;
+
+      while (true) {
+        const response = await this.client.apiKeys.list({
+          includeDisabled,
+          offset,
+        });
+
+        if (response.data.length === 0) {
+          break;
+        }
+
+        let newItems = 0;
+
+        for (const key of response.data) {
+          if (seenHashes.has(key.hash)) {
+            continue;
+          }
+
+          seenHashes.add(key.hash);
+          allKeys.push(key);
+          newItems += 1;
+        }
+
+        if (newItems === 0) {
+          if (this.verbose) {
+            console.warn(
+              "API key pagination made no progress; stopping to avoid an infinite loop.",
+            );
+          }
+          break;
+        }
+
+        offset += response.data.length;
+      }
+
+      return allKeys;
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
   async disableKey(hash: string): Promise<void> {
-    await this.request(`keys/${hash}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        disabled: true,
-      }),
-    });
+    try {
+      await this.client.apiKeys.update({
+        hash,
+        requestBody: {
+          disabled: true,
+        },
+      });
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
   async enableKey(hash: string): Promise<void> {
-    await this.request(`keys/${hash}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        disabled: false,
-      }),
-    });
+    try {
+      await this.client.apiKeys.update({
+        hash,
+        requestBody: {
+          disabled: false,
+        },
+      });
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
-  async getKey(hash: string): Promise<OpenRouterKey> {
-    const response = await this.request<{ data: OpenRouterKey }>(
-      `keys/${hash}`,
-    );
-    return response.data;
+  async getKey(hash: string): Promise<GetKeyData> {
+    try {
+      const response = await this.client.apiKeys.get({ hash });
+      return response.data;
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
   async setKeyLimit(hash: string, limit: number): Promise<void> {
-    await this.request(`keys/${hash}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        limit,
-      }),
-    });
+    try {
+      await this.client.apiKeys.update({
+        hash,
+        requestBody: {
+          limit,
+        },
+      });
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
   async deleteKeyByHash(hash: string): Promise<void> {
-    await this.request(`keys/${hash}`, {
-      method: "DELETE",
-    });
+    try {
+      await this.client.apiKeys.delete({ hash });
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 
   async deleteKey(keyName: string): Promise<void> {

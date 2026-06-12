@@ -38,12 +38,12 @@
   "license": "BSD-2-Clause",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
+    "@openrouter/sdk": "^0.12.79",
     "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "csv-parse": "^6.2.1",
     "inquirer": "^13.4.1",
-    "ky": "^2.0.0",
     "minimatch": "^10.2.5"
   },
   "devDependencies": {

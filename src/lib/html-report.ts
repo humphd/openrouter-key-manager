@@ -23,7 +23,7 @@ export function generateHTML(keys: OpenRouterKey[]): string {
   const totalUsage = keys.reduce((sum, k) => sum + k.usage, 0);
   const totalLimit = keys.reduce((sum, k) => sum + (k.limit ?? 0), 0);
   const totalRemaining = keys.reduce(
-    (sum, k) => sum + (k.limit_remaining ?? 0),
+    (sum, k) => sum + (k.limitRemaining ?? 0),
     0,
   );
   const activeKeys = keys.filter((k) => !k.disabled).length;
@@ -34,12 +34,12 @@ export function generateHTML(keys: OpenRouterKey[]): string {
     hash: k.hash,
     disabled: k.disabled,
     usage: k.usage,
-    daily: k.usage_daily,
-    weekly: k.usage_weekly,
-    monthly: k.usage_monthly,
+    daily: k.usageDaily,
+    weekly: k.usageWeekly,
+    monthly: k.usageMonthly,
     limit: k.limit ?? 0,
-    remaining: k.limit_remaining ?? 0,
-    createdAt: k.created_at,
+    remaining: k.limitRemaining ?? 0,
+    createdAt: k.createdAt,
   }));
 
   // Sort by usage descending

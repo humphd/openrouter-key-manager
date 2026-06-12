@@ -1,6 +1,6 @@
 # OpenRouter Key Manager
 
-A Node.js library and CLI tool for [creating and managing](https://openrouter.ai/docs/features/provisioning-api-keys) [OpenRouter.ai](https://openrouter.ai/) API keys with flexible tagging and bulk operations.
+A Node.js library and CLI tool for [creating and managing](https://openrouter.ai/docs/features/provisioning-api-keys) [OpenRouter.ai](https://openrouter.ai/) API keys with flexible tagging and bulk operations, built on the official OpenRouter TypeScript SDK.
 
 ## Features
 
