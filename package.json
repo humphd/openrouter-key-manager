@@ -24,6 +24,7 @@
     "prepare": "pnpm build",
     "build": "tsc",
     "clean": "rm -fr dist",
+    "check": "pnpm prettier-check && pnpm typecheck && pnpm lint && pnpm test",
     "prettier": "prettier . --write",
     "format": "pnpm prettier",
     "prettier-check": "prettier . --check",
