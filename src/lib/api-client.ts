@@ -120,6 +120,7 @@ export class OpenRouterClient {
       const seenHashes = new Set<string>();
       let offset = 0;
 
+      // TODO: switch to proper pagination once https://github.com/OpenRouterTeam/typescript-sdk/issues/958 lands
       while (true) {
         const response = await this.client.apiKeys.list({
           includeDisabled,
