@@ -14,6 +14,11 @@ export { setLimit } from "./commands/set-limit.js";
 export { bulkSetLimit } from "./commands/bulk-set-limit.js";
 export { rotate } from "./commands/rotate.js";
 export { bulkRotate } from "./commands/bulk-rotate.js";
+export {
+  createWorkspace,
+  deleteWorkspace,
+  listWorkspaces,
+} from "./commands/workspaces.js";
 
 export type { CreateOptions, CreateResult } from "./commands/create.js";
 export type {
@@ -39,6 +44,11 @@ export type {
   BulkRotateResult,
 } from "./commands/bulk-rotate.js";
 export type { ListOptions, ListResult } from "./commands/list.js";
+export type {
+  CreateWorkspaceOptions,
+  DeleteWorkspaceOptions,
+  ListWorkspacesOptions,
+} from "./commands/workspaces.js";
 
 export { OpenRouterClient } from "./lib/api-client.js";
 export { parseAccountList, parseKeyFile } from "./lib/file-parser.js";

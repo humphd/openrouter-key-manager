@@ -1,6 +1,7 @@
 import { OpenRouterClient } from "../lib/api-client.js";
 import { getSelectedKeys } from "../lib/key-selector.js";
 import { getProvisioningKey } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions } from "../types.js";
 
 export interface DestroyOptions extends GlobalOptions {
@@ -16,8 +17,10 @@ export interface DestroyResult {
 
 export async function destroy(options: DestroyOptions): Promise<DestroyResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
-  const client = new OpenRouterClient(provisioningKey);
-  const keysToDelete = await getSelectedKeys(options);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
+
+  const client = new OpenRouterClient(provisioningKey, { workspace });
+  const keysToDelete = await getSelectedKeys(options, client);
 
   const deleted: string[] = [];
   const errors: Array<{ keyName: string; error: string }> = [];

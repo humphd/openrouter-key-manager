@@ -33,4 +33,5 @@ export type OutputFormat = "table" | "json" | "csv";
 
 export interface GlobalOptions {
   provisioningKey?: string;
+  workspace?: string;
 }

@@ -4,43 +4,50 @@ import { Command } from "commander";
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { writeFile } from "node:fs/promises";
+import Table from "cli-table3";
 
 import {
-  create,
   bulkCreate,
-  destroy,
   bulkDestroy,
-  list,
-  disable,
-  report,
-  setLimit,
-  bulkSetLimit,
-  rotate,
   bulkRotate,
+  bulkSetLimit,
+  create,
+  createWorkspace,
+  deleteWorkspace,
+  destroy,
+  disable,
   enable,
   generateOutputFilename,
+  getDefaultReportFilename,
+  getSelectedKeys,
+  getTodayDate,
+  list,
+  listWorkspaces,
   outputCreatedKeys,
   outputKeyList,
-  getTodayDate,
-  validateFormat,
-  getSelectedKeys,
   parseKeyFile,
-  getDefaultReportFilename,
+  report,
+  rotate,
+  setLimit,
+  validateFormat,
 } from "../src/index.js";
 import type {
-  CreateOptions,
   BulkCreateOptions,
-  DestroyOptions,
   BulkDestroyOptions,
-  ListOptions,
-  DisableOptions,
-  ReportOptions,
-  SetLimitOptions,
-  BulkSetLimitOptions,
-  RotateOptions,
   BulkRotateOptions,
+  BulkSetLimitOptions,
+  CreateOptions,
+  CreateWorkspaceOptions,
+  DeleteWorkspaceOptions,
+  DestroyOptions,
+  DisableOptions,
   EnableOptions,
   GlobalOptions,
+  ListOptions,
+  ListWorkspacesOptions,
+  ReportOptions,
+  RotateOptions,
+  SetLimitOptions,
 } from "../src/index.js";
 
 import packageJson from "../package.json" with { type: "json" };
@@ -101,7 +108,11 @@ program
   .name("openrouter-key-manager")
   .description("Manage OpenRouter.ai API keys")
   .version(version)
-  .option("-k, --provisioning-key <key>", "OpenRouter.ai API Provisioning Key");
+  .option("-k, --provisioning-key <key>", "OpenRouter.ai API Provisioning Key")
+  .option(
+    "-w, --workspace <name-or-id>",
+    "Specify a workspace to use (Default workspace otherwise)",
+  );
 
 // CREATE command
 program
@@ -748,4 +759,114 @@ program
     }
   });
 
-program.parse();
+const workspacesCommand = program
+  .command("workspaces")
+  .description("Manage OpenRouter workspaces");
+
+workspacesCommand
+  .command("list")
+  .description("List available workspaces")
+  .action(async (options) => {
+    try {
+      const opts = mergeOptions<ListWorkspacesOptions>(options, program.opts());
+
+      const workspaces = await listWorkspaces(opts);
+
+      if (workspaces.length === 0) {
+        console.error(chalk.yellow("No workspaces found"));
+        return;
+      }
+
+      console.log(chalk.blue(`Found ${workspaces.length} workspaces\n`));
+
+      const table = new Table({
+        head: ["Name", "Slug", "ID"],
+      });
+
+      for (const workspace of workspaces) {
+        table.push([workspace.name, workspace.slug, workspace.id]);
+      }
+
+      console.log(table.toString());
+    } catch (error) {
+      handleCommandError(error);
+    }
+  });
+
+workspacesCommand
+  .command("create")
+  .description("Create a workspace")
+  .argument("<name>", "Workspace name")
+  .option("-s, --slug <slug>", "Workspace slug")
+  .option("-d, --description <description>", "Workspace description")
+  .action(async (name, options) => {
+    try {
+      const commandOptions = {
+        ...options,
+        name,
+      };
+
+      const opts = mergeOptions<CreateWorkspaceOptions>(
+        commandOptions,
+        program.opts(),
+      );
+
+      const workspace = await createWorkspace(opts);
+
+      console.error(chalk.green(`✓ Created workspace: ${workspace.name}`));
+
+      console.error(chalk.gray(`  Slug: ${workspace.slug}`));
+
+      console.error(chalk.gray(`  ID: ${workspace.id}`));
+    } catch (error) {
+      handleCommandError(error);
+    }
+  });
+
+workspacesCommand
+  .command("delete")
+  .description("Delete a workspace")
+  .argument("<name-or-id>", "Workspace name, slug, or ID")
+  .option("-y, --confirm", "Skip the confirmation prompt")
+  .action(async (selector, options) => {
+    try {
+      const opts = mergeOptions<DeleteWorkspaceOptions>(
+        options,
+        program.opts(),
+      );
+
+      if (!opts.confirm) {
+        console.error(chalk.yellow("\nDeleting a workspace cannot be undone."));
+
+        console.error(chalk.yellow("The workspace must contain no API keys."));
+
+        const answer = await inquirer.prompt<{
+          confirm: boolean;
+        }>([
+          {
+            type: "confirm",
+            name: "confirm",
+            message: `Delete workspace "${selector}"?`,
+            default: false,
+          },
+        ]);
+
+        if (!answer.confirm) {
+          console.error(chalk.yellow("Workspace deletion cancelled"));
+          return;
+        }
+      }
+
+      const workspace = await deleteWorkspace(selector, opts);
+
+      console.error(chalk.green(`✓ Deleted workspace: ${workspace.name}`));
+
+      console.error(chalk.gray(`  Slug: ${workspace.slug}`));
+
+      console.error(chalk.gray(`  ID: ${workspace.id}`));
+    } catch (error) {
+      handleCommandError(error);
+    }
+  });
+
+program.parseAsync(process.argv).catch(handleCommandError);

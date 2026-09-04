@@ -9,6 +9,7 @@ import {
   validateExpiry,
 } from "../lib/validators.js";
 import { getProvisioningKey, getTodayDate } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions, KeyInfo } from "../types.js";
 
 export interface CreateOptions extends GlobalOptions {
@@ -25,6 +26,7 @@ export interface CreateResult extends KeyInfo {}
 
 export async function create(options: CreateOptions): Promise<CreateResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
 
   validateEmail(options.email);
   const tags = options.tags || [];
@@ -34,7 +36,7 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
   validateDate(date);
   const expiresAt = validateExpiry(options.expiresAt, options.expiresIn);
 
-  const client = new OpenRouterClient(provisioningKey);
+  const client = new OpenRouterClient(provisioningKey, { workspace });
   const keyName = generateKeyName(options.email, tags, date);
   const { key: apiKey, hash } = await client.createKey(
     keyName,

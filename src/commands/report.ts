@@ -1,6 +1,7 @@
 import { minimatch } from "minimatch";
 import { OpenRouterClient } from "../lib/api-client.js";
 import { getProvisioningKey } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions } from "../types.js";
 import { generateHTML } from "../lib/html-report.js";
 
@@ -17,7 +18,9 @@ export interface ReportResult {
 
 export async function report(options: ReportOptions): Promise<ReportResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
-  const client = new OpenRouterClient(provisioningKey);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
+
+  const client = new OpenRouterClient(provisioningKey, { workspace });
   const allKeys = await client.listKeys(true);
 
   let filteredKeys = allKeys;
@@ -34,7 +37,7 @@ export async function report(options: ReportOptions): Promise<ReportResult> {
     filteredKeys = filteredKeys.filter((key) => !key.disabled);
   }
 
-  const html = generateHTML(filteredKeys);
+  const html = generateHTML(filteredKeys, workspace);
 
   return {
     html,

@@ -47,6 +47,70 @@ export OPENROUTER_PROVISIONING_KEY=your_provisioning_key_here
 openrouter-key-manager --provisioning-key your_key_here [command]
 ```
 
+## Workspaces
+
+API Keys are created in a workspace. Each OpenRouter account has a `default` workspace if none is explicitly selected. You can override which workspace you use with the global `--workspace` flag. For example, list all keys in the `custom-workspace` workspace:
+
+```bash
+npx openrouter-key-manager --workspace custom-workspace list
+```
+
+The value you pass to `--workspace` can be the workspace's `id`, `name`, or `slug`.
+
+The `workspaces` sub-command can also be used to view and manage workspaces.
+
+### List Workspaces
+
+To see a list of all workspaces, use `workspaces list`:
+
+```bash
+$ npx openrouter-key-manager workspaces list
+
+Found 2 workspaces
+
+┌────────────────────┬────────────────────┬──────────────────────────────────────┐
+│ Name               │ Slug               │ ID                                   │
+├────────────────────┼────────────────────┼──────────────────────────────────────┤
+│ Seneca-Acad-AIP444 │ seneca-acad-aip444 │ 1576d782-43cd-424a-83ac-b7b9a37fc993 │
+├────────────────────┼────────────────────┼──────────────────────────────────────┤
+│ Default Workspace  │ default            │ 891e0cdd-b0ff-58c0-a36f-72f2a706d8c2 │
+└────────────────────┴────────────────────┴──────────────────────────────────────┘
+```
+
+### Create Workspace
+
+To create a new workspace, use `workspaces create`:
+
+```bash
+$ npx openrouter-key-manager workspaces create Test
+✓ Created workspace: Test
+  Slug: test
+  ID: ed609d27-2cdd-447d-93c2-3b45622b4204
+```
+
+Include the optional `--slug` and `--description` flags to add more detail.
+
+> [!NOTE]
+> The slug must be URL-friendly (alphanumeric and dashes only).
+
+### Delete Workspace
+
+To delete an existing workspace, use `workspaces delete`:
+
+```bash
+$ npx openrouter-key-manager workspaces delete Test
+
+Deleting a workspace cannot be undone.
+The workspace must contain no API keys.
+✔ Delete workspace "test"? Yes
+✓ Deleted workspace: Test
+  Slug: test
+  ID: ed609d27-2cdd-447d-93c2-3b45622b4204
+```
+
+> [!NOTE]
+> Delete all API Keys from a workspace before you try to delete the workspace itself.
+
 ## Usage
 
 ### CLI Usage

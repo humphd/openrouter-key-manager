@@ -1,6 +1,7 @@
 import { OpenRouterClient } from "../lib/api-client.js";
 import { parseKeyFile } from "../lib/file-parser.js";
 import { getProvisioningKey } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions } from "../types.js";
 
 export interface BulkDestroyOptions extends GlobalOptions {
@@ -18,13 +19,15 @@ export async function bulkDestroy(
   options: BulkDestroyOptions,
 ): Promise<BulkDestroyResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
+
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
     options.skipHeader ?? true,
   );
 
-  const client = new OpenRouterClient(provisioningKey);
+  const client = new OpenRouterClient(provisioningKey, { workspace });
   const deleted: string[] = [];
   const errors: Array<{ key: string; error: string }> = [];
 

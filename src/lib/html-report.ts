@@ -1,3 +1,4 @@
+import type { Workspace } from "@openrouter/sdk/models";
 import type { OpenRouterKey } from "../types.js";
 
 function escapeHtml(text: string): string {
@@ -19,7 +20,10 @@ export function getDefaultReportFilename(): string {
   return `report-${year}-${month}-${day}.html`;
 }
 
-export function generateHTML(keys: OpenRouterKey[]): string {
+export function generateHTML(
+  keys: OpenRouterKey[],
+  workspace?: Workspace,
+): string {
   const totalUsage = keys.reduce((sum, k) => sum + k.usage, 0);
   const totalLimit = keys.reduce((sum, k) => sum + (k.limit ?? 0), 0);
   const totalRemaining = keys.reduce(
@@ -269,6 +273,7 @@ export function generateHTML(keys: OpenRouterKey[]): string {
 <body>
   <div class="container">
     <h1>OpenRouter API Key Usage Report</h1>
+    <h2>Workspace: ${workspace ? escapeHtml(workspace.name) : "Default"}</h2>
     <div class="timestamp">
       Generated: ${new Date().toLocaleString()}
     </div>

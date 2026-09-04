@@ -7,6 +7,7 @@ import {
   validateLimit,
 } from "../lib/validators.js";
 import { getProvisioningKey, getTodayDate } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { KeyInfo, AccountRecord, GlobalOptions } from "../types.js";
 
 export interface BulkCreateOptions extends GlobalOptions {
@@ -32,6 +33,7 @@ export async function bulkCreate(
   options: BulkCreateOptions,
 ): Promise<BulkCreateResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
   validateLimit(options.limit);
   const date = options.date || getTodayDate();
   validateDate(date);
@@ -43,7 +45,7 @@ export async function bulkCreate(
     options.skipHeader ?? true,
   );
 
-  const client = new OpenRouterClient(provisioningKey);
+  const client = new OpenRouterClient(provisioningKey, { workspace });
   const created: KeyInfo[] = [];
   const errors: Array<{ account: AccountRecord; error: string }> = [];
 

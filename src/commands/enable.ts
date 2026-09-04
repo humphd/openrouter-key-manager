@@ -1,6 +1,7 @@
 import { OpenRouterClient } from "../lib/api-client.js";
 import { getSelectedKeys } from "../lib/key-selector.js";
 import { getProvisioningKey } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions } from "../types.js";
 
 export interface EnableOptions extends GlobalOptions {
@@ -16,8 +17,10 @@ export interface EnableResult {
 
 export async function enable(options: EnableOptions): Promise<EnableResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
-  const client = new OpenRouterClient(provisioningKey);
-  const keysToModify = await getSelectedKeys(options);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
+
+  const client = new OpenRouterClient(provisioningKey, { workspace });
+  const keysToModify = await getSelectedKeys(options, client);
 
   const modified: string[] = [];
   const errors: Array<{ keyName: string; error: string }> = [];

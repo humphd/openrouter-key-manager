@@ -2,6 +2,7 @@ import { OpenRouterClient } from "../lib/api-client.js";
 import { getSelectedKeys } from "../lib/key-selector.js";
 import { validateLimit } from "../lib/validators.js";
 import { getProvisioningKey } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions } from "../types.js";
 
 export interface SetLimitOptions extends GlobalOptions {
@@ -22,8 +23,10 @@ export async function setLimit(
   validateLimit(options.limit);
 
   const provisioningKey = getProvisioningKey(options.provisioningKey);
-  const client = new OpenRouterClient(provisioningKey);
-  const keysToModify = await getSelectedKeys(options);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
+
+  const client = new OpenRouterClient(provisioningKey, { workspace });
+  const keysToModify = await getSelectedKeys(options, client);
 
   const updated: string[] = [];
   const errors: Array<{ keyName: string; error: string }> = [];

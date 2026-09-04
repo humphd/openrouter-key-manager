@@ -5,6 +5,7 @@ import {
 } from "@openrouter/sdk/models/errors";
 import { ApiError } from "../utils/errors.js";
 import type { GetKeyData, ListData } from "@openrouter/sdk/models/operations";
+import type { Workspace } from "@openrouter/sdk/models";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_BACKOFF_MS = 60_000;
@@ -12,6 +13,9 @@ const INITIAL_BACKOFF_MS = 1_000;
 const MAX_RETRY_DELAY_MS = 30_000;
 
 export interface OpenRouterClientOptions {
+  /** The Workspace to use if using something other than "Default" */
+  workspace?: Pick<Workspace, "id" | "name" | "slug">;
+
   /**
    * Request timeout in milliseconds
    * @default 30000
@@ -27,13 +31,14 @@ export interface OpenRouterClientOptions {
 
 export class OpenRouterClient {
   private readonly client: OpenRouter;
+  private readonly workspaceId?: string;
   private readonly verbose: boolean;
 
   constructor(provisioningKey: string, options: OpenRouterClientOptions = {}) {
     const { timeout = DEFAULT_TIMEOUT_MS, verbose = false } = options;
 
     this.verbose = verbose;
-
+    this.workspaceId = options.workspace?.id;
     this.client = new OpenRouter({
       apiKey: provisioningKey,
       timeoutMs: timeout,
@@ -105,6 +110,7 @@ export class OpenRouterClient {
           name: keyName,
           limit,
           expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+          workspaceId: this.workspaceId,
         },
       });
 
@@ -125,6 +131,7 @@ export class OpenRouterClient {
         const response = await this.client.apiKeys.list({
           includeDisabled,
           offset,
+          workspaceId: this.workspaceId,
         });
 
         if (response.data.length === 0) {
@@ -226,5 +233,75 @@ export class OpenRouterClient {
     }
 
     await this.deleteKeyByHash(targetKey.hash);
+  }
+
+  /** Workspaces */
+  async listWorkspaces(): Promise<Workspace[]> {
+    try {
+      const allWorkspaces: Workspace[] = [];
+      const response = await this.client.workspaces.list();
+
+      for await (const page of response) {
+        allWorkspaces.push(...page.result.data);
+      }
+
+      return allWorkspaces;
+    } catch (error) {
+      throw this.toApiError(error);
+    }
+  }
+
+  async getWorkspace(workspaceId: string): Promise<Workspace> {
+    try {
+      const response = await this.client.workspaces.get({ id: workspaceId });
+      return response.data;
+    } catch (error) {
+      throw this.toApiError(error);
+    }
+  }
+
+  async createWorkspace(options: {
+    name: string;
+    slug?: string;
+    description?: string;
+  }): Promise<Workspace> {
+    /**
+     * Generate a URL-friendly slug: lowercase alphanumeric segments separated by
+     * single hyphens,no leading/trailing hyphens
+     */
+    function generateSlug() {
+      return options.name
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    try {
+      const response = await this.client.workspaces.create({
+        createWorkspaceRequest: {
+          name: options.name,
+          slug: options.slug ?? generateSlug(),
+          description: options.description,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw this.toApiError(error);
+    }
+  }
+
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    try {
+      const response = await this.client.workspaces.delete({ id: workspaceId });
+      if (!response.deleted) {
+        throw new ApiError(
+          "Unable to delete workspace. Make sure it contains no API keys and try again",
+        );
+      }
+    } catch (error) {
+      throw this.toApiError(error);
+    }
   }
 }

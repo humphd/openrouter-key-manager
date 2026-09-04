@@ -1,7 +1,8 @@
 import { minimatch } from "minimatch";
 import { OpenRouterClient } from "./api-client.js";
-import { getProvisioningKey } from "../utils/config.js";
 import type { GlobalOptions } from "../types.js";
+import { getProvisioningKey } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 
 export interface KeySelectorOptions extends GlobalOptions {
   pattern?: string;
@@ -16,6 +17,7 @@ export interface SelectedKey {
 
 export async function getSelectedKeys(
   options: KeySelectorOptions,
+  client?: OpenRouterClient,
 ): Promise<SelectedKey[]> {
   // Validate that only one of pattern or hash is provided
   if (options.pattern && options.hash) {
@@ -26,11 +28,18 @@ export async function getSelectedKeys(
     throw new Error("Either --pattern or --hash must be provided");
   }
 
-  const provisioningKey = getProvisioningKey(options.provisioningKey);
-  const client = new OpenRouterClient(provisioningKey);
+  let apiClient = client;
+  if (!apiClient) {
+    const provisioningKey = getProvisioningKey(options.provisioningKey);
+    const workspace = await resolveWorkspace(
+      provisioningKey,
+      options.workspace,
+    );
+    apiClient = new OpenRouterClient(provisioningKey, { workspace });
+  }
 
   // Get all keys
-  const allKeys = await client.listKeys(true);
+  const allKeys = await apiClient.listKeys(true);
   let selectedKeys = allKeys;
 
   // Filter by hash if provided

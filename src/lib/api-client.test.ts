@@ -10,11 +10,33 @@ const mockApiKeys = {
   delete: vi.fn(),
 };
 
+const mockWorkspaces = {
+  list: vi.fn(),
+  get: vi.fn(),
+  create: vi.fn(),
+  delete: vi.fn(),
+};
+
 vi.mock("@openrouter/sdk", () => ({
   OpenRouter: class {
     apiKeys = mockApiKeys;
+    workspaces = mockWorkspaces;
   },
 }));
+
+function workspacePages(...pages: unknown[][]) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const data of pages) {
+        yield {
+          result: {
+            data,
+          },
+        };
+      }
+    },
+  };
+}
 
 describe("OpenRouterClient", () => {
   const mockProvisioningKey = "test-provisioning-key";
@@ -22,7 +44,7 @@ describe("OpenRouterClient", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    client = new OpenRouterClient(mockProvisioningKey);
+    client = new OpenRouterClient(mockProvisioningKey, undefined);
   });
 
   afterEach(() => {
@@ -335,6 +357,221 @@ describe("OpenRouterClient", () => {
       );
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
         "Key not found",
+      );
+    });
+  });
+
+  describe("listWorkspaces", () => {
+    test("lists workspaces across all pages", async () => {
+      const firstWorkspace = {
+        id: "workspace-1",
+        name: "First Workspace",
+        slug: "first-workspace",
+      };
+      const secondWorkspace = {
+        id: "workspace-2",
+        name: "Second Workspace",
+        slug: "second-workspace",
+      };
+
+      mockWorkspaces.list.mockResolvedValue(
+        workspacePages([firstWorkspace], [secondWorkspace]),
+      );
+
+      const result = await client.listWorkspaces();
+
+      expect(result).toEqual([firstWorkspace, secondWorkspace]);
+      expect(mockWorkspaces.list).toHaveBeenCalledOnce();
+      expect(mockWorkspaces.list).toHaveBeenCalledWith();
+    });
+
+    test("returns an empty array when no workspaces exist", async () => {
+      mockWorkspaces.list.mockResolvedValue(workspacePages([]));
+
+      await expect(client.listWorkspaces()).resolves.toEqual([]);
+    });
+
+    test("converts workspace listing failures to ApiError", async () => {
+      mockWorkspaces.list.mockRejectedValue(new Error("Network failure"));
+
+      await expect(client.listWorkspaces()).rejects.toMatchObject({
+        name: "ApiError",
+        message: "Unexpected error: Network failure",
+      });
+    });
+  });
+
+  describe("getWorkspace", () => {
+    test("passes the workspace ID when listing keys", async () => {
+      const workspace = {
+        id: "workspace-1",
+        name: "Test Workspace",
+        slug: "test-workspace",
+      };
+
+      client = new OpenRouterClient(mockProvisioningKey, { workspace });
+
+      mockApiKeys.list.mockResolvedValue({
+        data: [],
+      });
+
+      await client.listKeys(false);
+
+      expect(mockApiKeys.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: "workspace-1",
+        }),
+      );
+    });
+
+    test("omits workspace ID for the default workspace", async () => {
+      mockApiKeys.list.mockResolvedValue({
+        data: [],
+      });
+
+      await client.listKeys(false);
+
+      expect(mockApiKeys.list).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          workspaceId: expect.anything(),
+        }),
+      );
+    });
+
+    test("gets a workspace by ID", async () => {
+      const workspace = {
+        id: "workspace-1",
+        name: "Test Workspace",
+        slug: "test-workspace",
+      };
+
+      mockWorkspaces.get.mockResolvedValue({
+        data: workspace,
+      });
+
+      const result = await client.getWorkspace("workspace-1");
+
+      expect(result).toEqual(workspace);
+      expect(mockWorkspaces.get).toHaveBeenCalledWith({
+        id: "workspace-1",
+      });
+    });
+
+    test("converts workspace lookup failures to ApiError", async () => {
+      mockWorkspaces.get.mockRejectedValue(new Error("Lookup failed"));
+
+      await expect(client.getWorkspace("workspace-1")).rejects.toMatchObject({
+        name: "ApiError",
+        message: "Unexpected error: Lookup failed",
+      });
+    });
+  });
+
+  describe("createWorkspace", () => {
+    test("creates a workspace with an explicit slug", async () => {
+      const workspace = {
+        id: "workspace-1",
+        name: "Test Workspace",
+        slug: "custom-slug",
+        description: "A test workspace",
+      };
+
+      mockWorkspaces.create.mockResolvedValue({
+        data: workspace,
+      });
+
+      const result = await client.createWorkspace({
+        name: "Test Workspace",
+        slug: "custom-slug",
+        description: "A test workspace",
+      });
+
+      expect(result).toEqual(workspace);
+      expect(mockWorkspaces.create).toHaveBeenCalledWith({
+        createWorkspaceRequest: {
+          name: "Test Workspace",
+          slug: "custom-slug",
+          description: "A test workspace",
+        },
+      });
+    });
+
+    test("uses the workspace name as the default slug", async () => {
+      const workspace = {
+        id: "workspace-1",
+        name: "Test Workspace",
+        slug: "Test Workspace",
+      };
+
+      mockWorkspaces.create.mockResolvedValue({
+        data: workspace,
+      });
+
+      await client.createWorkspace({
+        name: "Test Workspace",
+      });
+
+      expect(mockWorkspaces.create).toHaveBeenCalledWith({
+        createWorkspaceRequest: {
+          name: "Test Workspace",
+          slug: "test-workspace",
+          description: undefined,
+        },
+      });
+    });
+
+    test("converts workspace creation failures to ApiError", async () => {
+      mockWorkspaces.create.mockRejectedValue(new Error("Creation failed"));
+
+      await expect(
+        client.createWorkspace({
+          name: "Test Workspace",
+        }),
+      ).rejects.toMatchObject({
+        name: "ApiError",
+        message: "Unexpected error: Creation failed",
+      });
+    });
+  });
+
+  describe("deleteWorkspace", () => {
+    test("deletes a workspace by ID", async () => {
+      mockWorkspaces.delete.mockResolvedValue({
+        deleted: true,
+      });
+
+      await expect(
+        client.deleteWorkspace("workspace-1"),
+      ).resolves.toBeUndefined();
+
+      expect(mockWorkspaces.delete).toHaveBeenCalledWith({
+        id: "workspace-1",
+      });
+    });
+
+    test("throws ApiError when the workspace is not deleted", async () => {
+      mockWorkspaces.delete.mockResolvedValue({
+        deleted: false,
+      });
+
+      await expect(client.deleteWorkspace("workspace-1")).rejects.toMatchObject(
+        {
+          name: "ApiError",
+          message:
+            "Unable to delete workspace. " +
+            "Make sure it contains no API keys and try again",
+        },
+      );
+    });
+
+    test("converts workspace deletion failures to ApiError", async () => {
+      mockWorkspaces.delete.mockRejectedValue(new Error("Deletion failed"));
+
+      await expect(client.deleteWorkspace("workspace-1")).rejects.toMatchObject(
+        {
+          name: "ApiError",
+          message: "Unexpected error: Deletion failed",
+        },
       );
     });
   });

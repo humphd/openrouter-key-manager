@@ -1,6 +1,7 @@
 import { OpenRouterClient } from "../lib/api-client.js";
 import { parseKeyFile } from "../lib/file-parser.js";
 import { getProvisioningKey, getTodayDate } from "../utils/config.js";
+import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions, KeyInfo } from "../types.js";
 
 export interface BulkRotateOptions extends GlobalOptions {
@@ -20,13 +21,15 @@ export async function bulkRotate(
   options: BulkRotateOptions,
 ): Promise<BulkRotateResult> {
   const provisioningKey = getProvisioningKey(options.provisioningKey);
+  const workspace = await resolveWorkspace(provisioningKey, options.workspace);
+
   const keys = await parseKeyFile(
     filePath,
     options.delimiter,
     options.skipHeader ?? true,
   );
 
-  const client = new OpenRouterClient(provisioningKey);
+  const client = new OpenRouterClient(provisioningKey, { workspace });
   const rotated: KeyInfo[] = [];
   const errors: Array<{ key: string; error: string }> = [];
 
