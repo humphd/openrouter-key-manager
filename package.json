@@ -39,22 +39,22 @@
   "license": "BSD-2-Clause",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
-    "@openrouter/sdk": "^0.12.79",
-    "chalk": "^5.6.2",
+    "@openrouter/sdk": "^1.2.103",
+    "chalk": "^6.0.0",
     "cli-table3": "^0.6.5",
-    "commander": "^14.0.3",
-    "csv-parse": "^6.2.1",
-    "inquirer": "^13.4.1",
-    "minimatch": "^10.2.5"
+    "commander": "^15.0.0",
+    "csv-parse": "^7.0.2",
+    "inquirer": "^14.2.1",
+    "minimatch": "^10.2.6"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
-    "@types/inquirer": "^9.0.9",
+    "@tsconfig/node24": "^24.0.5",
+    "@types/inquirer": "^9.0.10",
     "@types/node": "^24.9.2",
     "dotenv": "^17.4.1",
-    "oxlint": "^1.25.0",
-    "prettier": "3.8.2",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.4"
+    "oxlint": "^1.81.0",
+    "prettier": "3.9.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }
