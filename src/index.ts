@@ -73,3 +73,4 @@ export { getSelectedKeys } from "./lib/key-selector.js";
 export { generateHTML, getDefaultReportFilename } from "./lib/html-report.js";
 
 export { getProvisioningKey, getTodayDate } from "./utils/config.js";
+export { resolveWorkspace } from "./utils/workspaces.js";
