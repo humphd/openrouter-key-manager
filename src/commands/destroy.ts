@@ -3,6 +3,7 @@ import { getSelectedKeys } from "../lib/key-selector.js";
 import { getProvisioningKey } from "../utils/config.js";
 import { resolveWorkspace } from "../utils/workspaces.js";
 import type { GlobalOptions } from "../types.js";
+import chalk from "chalk";
 
 export interface DestroyOptions extends GlobalOptions {
   pattern?: string;
@@ -28,6 +29,7 @@ export async function destroy(options: DestroyOptions): Promise<DestroyResult> {
   for (const key of keysToDelete) {
     try {
       await client.deleteKeyByHash(key.hash);
+      console.error(chalk.green(`✓ Deleted key: "${key.name}"`));
       deleted.push(key.name);
     } catch (error) {
       const errorMessage =
