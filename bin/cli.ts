@@ -7,6 +7,7 @@ import { writeFile } from "node:fs/promises";
 import Table from "cli-table3";
 
 import {
+  analytics,
   bulkCreate,
   bulkDestroy,
   bulkRotate,
@@ -24,6 +25,7 @@ import {
   list,
   listWorkspaces,
   outputCreatedKeys,
+  outputAnalytics,
   outputKeyList,
   parseKeyFile,
   report,
@@ -32,6 +34,9 @@ import {
   validateFormat,
 } from "../src/index.js";
 import type {
+  AnalyticsOptions,
+  AnalyticsPeriod,
+  AnalyticsView,
   BulkCreateOptions,
   BulkDestroyOptions,
   BulkRotateOptions,
@@ -65,6 +70,13 @@ function handleCommandError(error: unknown): never {
   console.error(chalk.red(`Error: ${message}`));
   process.exit(1);
 }
+
+type AnalyticsCliOptions = AnalyticsOptions & {
+  summary?: boolean;
+  models?: boolean;
+  format?: string;
+  output?: string;
+};
 
 async function confirmAction(
   action: string,
@@ -485,6 +497,62 @@ program
         chalk.blue(`Report generated for ${result.keyCount} key(s)`),
       );
       console.error(chalk.green(`✓ Report written to ${outputFile}`));
+    } catch (error) {
+      handleCommandError(error);
+    }
+  });
+
+// ANALYTICS command
+program
+  .command("analytics")
+  .description("Show curated workspace usage analytics")
+  .option("--summary", "Show one aggregate workspace row")
+  .option("--models", "Show usage grouped by model")
+  .option(
+    "--period <period>",
+    "Completed UTC period (hour, day, 7-days, 30-days, 90-days)",
+    "30-days",
+  )
+  .option("-p, --pattern <pattern>", "Filter API keys by glob pattern")
+  .option("--include-disabled", "Include disabled keys (default false)")
+  .option("-f, --format <format>", "Output format (table, json, csv)", "table")
+  .option("-o, --output <file>", "Write output to a file")
+  .action(async (options) => {
+    try {
+      const opts = mergeOptions<AnalyticsCliOptions>(options, program.opts());
+      if (opts.summary && opts.models) {
+        throw new Error(
+          "Cannot specify both --summary and --models. Choose one.",
+        );
+      }
+
+      const view: AnalyticsView = opts.summary
+        ? "summary"
+        : opts.models
+          ? "models"
+          : "keys";
+      const format = validateFormat(opts.format ?? "table");
+      const result = await analytics({
+        provisioningKey: opts.provisioningKey,
+        workspace: opts.workspace,
+        view,
+        period: opts.period as AnalyticsPeriod,
+        pattern: opts.pattern,
+        includeDisabled: opts.includeDisabled,
+      });
+
+      for (const warning of result.warnings) {
+        console.error(chalk.yellow(`Warning: ${warning}`));
+      }
+      if (result.truncated) {
+        console.error(
+          chalk.yellow(
+            "Warning: OpenRouter truncated at least one analytics query; output is partial.",
+          ),
+        );
+      }
+
+      await outputAnalytics(result, format, opts.output);
     } catch (error) {
       handleCommandError(error);
     }

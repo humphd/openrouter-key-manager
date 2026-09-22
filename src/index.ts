@@ -10,6 +10,7 @@ export { list } from "./commands/list.js";
 export { disable } from "./commands/disable.js";
 export { enable } from "./commands/enable.js";
 export { report } from "./commands/report.js";
+export { analytics } from "./commands/analytics.js";
 export { setLimit } from "./commands/set-limit.js";
 export { bulkSetLimit } from "./commands/bulk-set-limit.js";
 export { rotate } from "./commands/rotate.js";
@@ -33,6 +34,17 @@ export type { DestroyOptions, DestroyResult } from "./commands/destroy.js";
 export type { DisableOptions, DisableResult } from "./commands/disable.js";
 export type { EnableOptions, EnableResult } from "./commands/enable.js";
 export type { ReportOptions, ReportResult } from "./commands/report.js";
+export type {
+  AnalyticsKeyRow,
+  AnalyticsMetrics,
+  AnalyticsModelRow,
+  AnalyticsOptions,
+  AnalyticsPeriod,
+  AnalyticsRange,
+  AnalyticsResult,
+  AnalyticsSummaryRow,
+  AnalyticsView,
+} from "./commands/analytics.js";
 export type { SetLimitOptions, SetLimitResult } from "./commands/set-limit.js";
 export type {
   BulkSetLimitOptions,
@@ -51,6 +63,17 @@ export type {
 } from "./commands/workspaces.js";
 
 export { OpenRouterClient } from "./lib/api-client.js";
+export type {
+  AnalyticsMetadata,
+  AnalyticsQuery,
+  RawAnalyticsResult,
+  RawAnalyticsRow,
+} from "./lib/api-client.js";
+export {
+  getAnalyticsMeta,
+  queryAnalytics,
+  type RawAnalyticsOptions,
+} from "./lib/analytics-api.js";
 export { parseAccountList, parseKeyFile } from "./lib/file-parser.js";
 export {
   generateKeyName,
@@ -61,6 +84,13 @@ export {
   outputKeyList,
   type KeyListItem,
 } from "./lib/output-formatter.js";
+export {
+  formatAnalytics,
+  formatAnalyticsAsCsv,
+  formatAnalyticsAsJson,
+  formatAnalyticsAsTable,
+  outputAnalytics,
+} from "./lib/analytics-formatter.js";
 export {
   validateEmail,
   validateTags,
@@ -73,4 +103,7 @@ export { getSelectedKeys } from "./lib/key-selector.js";
 export { generateHTML, getDefaultReportFilename } from "./lib/html-report.js";
 
 export { getProvisioningKey, getTodayDate } from "./utils/config.js";
-export { resolveWorkspace } from "./utils/workspaces.js";
+export {
+  resolveWorkspace,
+  resolveWorkspaceRequired,
+} from "./utils/workspaces.js";

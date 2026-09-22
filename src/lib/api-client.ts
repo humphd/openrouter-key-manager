@@ -5,6 +5,11 @@ import {
 } from "@openrouter/sdk/models/errors";
 import { ApiError } from "../utils/errors.js";
 import type { GetKeyData, ListData } from "@openrouter/sdk/models/operations";
+import type {
+  GetAnalyticsMetaData,
+  QueryAnalyticsRequestBody,
+} from "@openrouter/sdk/models/operations";
+import { queryAnalyticsRequestBodyToJSON } from "@openrouter/sdk/models/operations";
 import type { Workspace } from "@openrouter/sdk/models";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -27,20 +32,54 @@ export interface OpenRouterClientOptions {
    * @default false
    */
   verbose?: boolean;
+
+  /** Override the OpenRouter API base URL. Primarily useful for testing. */
+  serverURL?: string;
+
+  /** Override the fetch implementation used by the raw analytics transport. */
+  fetch?: typeof globalThis.fetch;
+}
+
+export type AnalyticsMetadata = GetAnalyticsMetaData;
+export type AnalyticsQuery = QueryAnalyticsRequestBody;
+export type RawAnalyticsRow = Record<string, unknown>;
+
+export interface RawAnalyticsResult {
+  data: RawAnalyticsRow[];
+  metadata: {
+    queryTimeMs: number;
+    rowCount: number;
+    truncated: boolean;
+  };
+  cachedAt?: number;
+  warnings: string[];
 }
 
 export class OpenRouterClient {
   private readonly client: OpenRouter;
   private readonly workspaceId?: string;
   private readonly verbose: boolean;
+  private readonly provisioningKey: string;
+  private readonly timeout: number;
+  private readonly serverURL: string;
+  private readonly fetcher: typeof globalThis.fetch;
 
   constructor(provisioningKey: string, options: OpenRouterClientOptions = {}) {
     const { timeout = DEFAULT_TIMEOUT_MS, verbose = false } = options;
 
     this.verbose = verbose;
     this.workspaceId = options.workspace?.id;
+    this.provisioningKey = provisioningKey;
+    this.timeout = timeout;
+    this.serverURL = (
+      options.serverURL ??
+      process.env.OPENROUTER_BASE_URL ??
+      "https://openrouter.ai/api/v1"
+    ).replace(/\/$/, "");
+    this.fetcher = options.fetch ?? globalThis.fetch;
     this.client = new OpenRouter({
       apiKey: provisioningKey,
+      serverURL: options.serverURL,
       timeoutMs: timeout,
       retryConfig: {
         strategy: "backoff",
@@ -56,6 +95,33 @@ export class OpenRouterClient {
     });
   }
 
+  private apiErrorForStatus(status: number, errorMessage: string): ApiError {
+    switch (status) {
+      case 400:
+        return new ApiError(`Bad request: ${errorMessage}`, status);
+      case 401:
+        return new ApiError(
+          `Unauthorized: Invalid API key - ${errorMessage}`,
+          status,
+        );
+      case 403:
+        return new ApiError(`Forbidden: ${errorMessage}`, status);
+      case 404:
+        return new ApiError(`Not found: ${errorMessage}`, status);
+      case 408:
+        return new ApiError(`Request timeout: ${errorMessage}`, status);
+      case 429:
+        return new ApiError(`Rate limit exceeded: ${errorMessage}`, status);
+      case 500:
+        return new ApiError(`Server error: ${errorMessage}`, status);
+      default:
+        return new ApiError(
+          `API request failed (${status}): ${errorMessage}`,
+          status,
+        );
+    }
+  }
+
   private toApiError(error: unknown): ApiError {
     if (error instanceof ApiError) {
       return error;
@@ -68,26 +134,7 @@ export class OpenRouterClient {
       const status = error.statusCode;
       const errorMessage = error.body || error.message;
 
-      switch (status) {
-        case 400:
-          return new ApiError(`Bad request: ${errorMessage}`, status);
-        case 401:
-          return new ApiError(
-            `Unauthorized: Invalid API key - ${errorMessage}`,
-            status,
-          );
-        case 404:
-          return new ApiError(`Not found: ${errorMessage}`, status);
-        case 429:
-          return new ApiError(`Rate limit exceeded: ${errorMessage}`, status);
-        case 500:
-          return new ApiError(`Server error: ${errorMessage}`, status);
-        default:
-          return new ApiError(
-            `API request failed (${status}): ${errorMessage}`,
-            status,
-          );
-      }
+      return this.apiErrorForStatus(status, errorMessage);
     }
 
     if (error instanceof Error && error.name === "RequestTimeoutError") {
@@ -97,6 +144,156 @@ export class OpenRouterClient {
     return new ApiError(
       `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
     );
+  }
+
+  /** Return the live catalog of analytics metrics, dimensions, and operators. */
+  async getAnalyticsMeta(): Promise<AnalyticsMetadata> {
+    try {
+      const response = await this.client.analytics.getAnalyticsMeta();
+      return response.data;
+    } catch (error) {
+      throw this.toApiError(error);
+    }
+  }
+
+  /**
+   * Query analytics without dropping dynamic metric and dimension fields.
+   *
+   * The SDK request serializer is used, but the response is intentionally read
+   * as JSON because the generated SDK response schema currently strips row
+   * properties.
+   */
+  async queryAnalytics(query: AnalyticsQuery): Promise<RawAnalyticsResult> {
+    const body = queryAnalyticsRequestBodyToJSON(query);
+    let delay = INITIAL_BACKOFF_MS;
+    let elapsedBackoff = 0;
+    const startedAt = Date.now();
+
+    while (true) {
+      try {
+        const response = await this.fetcher(
+          `${this.serverURL}/analytics/query`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${this.provisioningKey}`,
+              "Content-Type": "application/json",
+            },
+            body,
+            signal: AbortSignal.timeout(this.timeout),
+          },
+        );
+
+        const payload = (await response.json().catch(() => undefined)) as
+          Record<string, unknown> | undefined;
+
+        if (!response.ok) {
+          const error = payload?.error;
+          const message =
+            error && typeof error === "object" && "message" in error
+              ? String(error.message)
+              : response.statusText || "Unknown error";
+
+          if (
+            this.shouldRetryStatus(response.status) &&
+            this.canRetry(startedAt, elapsedBackoff, delay)
+          ) {
+            await this.wait(delay);
+            elapsedBackoff += delay;
+            delay = Math.min(delay * 2, MAX_RETRY_DELAY_MS);
+            continue;
+          }
+
+          throw this.apiErrorForStatus(response.status, message);
+        }
+
+        return this.parseRawAnalyticsResult(payload);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw error;
+        }
+
+        if (this.isTimeoutError(error)) {
+          if (this.canRetry(startedAt, elapsedBackoff, delay)) {
+            await this.wait(delay);
+            elapsedBackoff += delay;
+            delay = Math.min(delay * 2, MAX_RETRY_DELAY_MS);
+            continue;
+          }
+          throw new ApiError("Request timeout", 408);
+        }
+
+        if (this.canRetry(startedAt, elapsedBackoff, delay)) {
+          await this.wait(delay);
+          elapsedBackoff += delay;
+          delay = Math.min(delay * 2, MAX_RETRY_DELAY_MS);
+          continue;
+        }
+
+        throw this.toApiError(error);
+      }
+    }
+  }
+
+  private shouldRetryStatus(status: number): boolean {
+    return status === 408 || status === 429 || status >= 500;
+  }
+
+  private canRetry(
+    startedAt: number,
+    elapsedBackoff: number,
+    nextDelay: number,
+  ): boolean {
+    const elapsed = Math.max(Date.now() - startedAt, elapsedBackoff);
+    return elapsed + nextDelay <= MAX_BACKOFF_MS;
+  }
+
+  private isTimeoutError(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      (error.name === "TimeoutError" || error.name === "AbortError")
+    );
+  }
+
+  private wait(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  private parseRawAnalyticsResult(
+    payload: Record<string, unknown> | undefined,
+  ): RawAnalyticsResult {
+    const outerData = payload?.data;
+    if (!outerData || typeof outerData !== "object") {
+      throw new ApiError("Unexpected analytics response: missing data");
+    }
+
+    const result = outerData as Record<string, unknown>;
+    const metadata = result.metadata;
+    if (
+      !Array.isArray(result.data) ||
+      !metadata ||
+      typeof metadata !== "object"
+    ) {
+      throw new ApiError("Unexpected analytics response shape");
+    }
+
+    const rawMetadata = metadata as Record<string, unknown>;
+    return {
+      data: result.data.filter(
+        (row): row is RawAnalyticsRow =>
+          row !== null && typeof row === "object" && !Array.isArray(row),
+      ),
+      metadata: {
+        queryTimeMs: Number(rawMetadata.query_time_ms ?? 0),
+        rowCount: Number(rawMetadata.row_count ?? result.data.length),
+        truncated: Boolean(rawMetadata.truncated),
+      },
+      cachedAt:
+        typeof result.cachedAt === "number" ? result.cachedAt : undefined,
+      warnings: Array.isArray(result.warnings)
+        ? result.warnings.map(String)
+        : [],
+    };
   }
 
   async createKey(

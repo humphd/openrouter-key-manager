@@ -6,7 +6,7 @@ A Node.js library and CLI tool for [creating and managing](https://openrouter.ai
 
 - **Bulk Operations**: Create, delete, rotate, and adjust limits for multiple keys at once
 - **Flexible Tagging**: Organize API keys with custom tags for easy filtering
-- **Usage Tracking**: Monitor spending and generate detailed HTML reports
+- **Usage Tracking**: Analyze requests, spend, tokens, models, and caching
 - **Pattern Matching**: Use glob patterns to manage groups of keys
 - **Key Rotation**: Securely rotate keys while preserving names and limits
 - **CSV-Based**: Simple CSV input/output for easy integration
@@ -132,6 +132,9 @@ import {
   setLimit,
   rotate,
   report,
+  analytics,
+  getAnalyticsMeta,
+  queryAnalytics,
 } from "openrouter-key-manager";
 
 // Create a single key
@@ -170,6 +173,18 @@ const reportResult = await report({
 
 // Save the HTML report
 await writeFile("report.html", reportResult.html);
+
+// Analyze the previous 30 complete UTC days by API key
+const usage = await analytics({
+  provisioningKey: "your-provisioning-key",
+  pattern: "*CCP555*",
+});
+
+if (usage.view === "keys") {
+  for (const row of usage.rows) {
+    console.log(row.keyName, row.requests, row.totalSpend);
+  }
+}
 ```
 
 #### Library API Reference
@@ -283,6 +298,28 @@ const key = await create({
   }
   ```
 
+- **`analytics(options)`** - Query curated workspace analytics
+
+  ```typescript
+  type AnalyticsView = "keys" | "summary" | "models";
+  type AnalyticsPeriod = "hour" | "day" | "7-days" | "30-days" | "90-days";
+
+  interface AnalyticsOptions {
+    provisioningKey?: string;
+    workspace?: string;
+    view?: AnalyticsView; // default: "keys"
+    period?: AnalyticsPeriod; // default: "30-days"
+    pattern?: string;
+    includeDisabled?: boolean;
+  }
+  ```
+
+  The discriminated `AnalyticsResult` contains the resolved workspace, UTC
+  range, normalized rows, query count and time, truncation state, and warnings.
+  For advanced queries, use `getAnalyticsMeta()` and `queryAnalytics(query)`;
+  raw metric and dimension names remain dynamic strings so they can follow
+  OpenRouter's live metadata catalog.
+
 ## Quick Start
 
 ### 1. Create API Keys for Multiple Users
@@ -353,6 +390,14 @@ Generate a detailed HTML report for all or some keys:
 
 ```bash
 openrouter-key-manager report --pattern "*CCP555*"
+```
+
+Analyze usage over the previous 30 complete UTC days:
+
+```bash
+openrouter-key-manager analytics
+openrouter-key-manager analytics --summary
+openrouter-key-manager analytics --models --period 7-days
 ```
 
 ### 3. Adjust Spending Limits
@@ -1120,6 +1165,88 @@ openrouter-key-manager bulk-delete CCP555-keys.csv
 # Delete using JSON file
 openrouter-key-manager bulk-delete keys.json -y
 ```
+
+---
+
+### `analytics`
+
+Show curated usage analytics for current API keys in the selected workspace.
+The default view has one row per key; `--summary` produces one workspace row,
+and `--models` groups usage by model.
+
+```bash
+openrouter-key-manager analytics [options]
+```
+
+**Options:**
+
+- `--summary` - Show one aggregate workspace row
+- `--models` - Group usage by model
+- `--period <period>` - Completed UTC window: `hour`, `day`, `7-days`,
+  `30-days`, or `90-days` (default: `30-days`)
+- `-p, --pattern <pattern>` - Select API keys by glob pattern
+- `--include-disabled` - Include disabled keys (default: false)
+- `-f, --format <format>` - Output `table`, `json`, or `csv` (default:
+  `table`)
+- `-o, --output <file>` - Write output to a file instead of stdout
+
+`--summary` and `--models` are mutually exclusive. Periods always exclude the
+current partial UTC hour or day. The `90-days` period is queried as three
+contiguous 30-day ranges and merged.
+
+**Examples:**
+
+```bash
+# Previous 30 complete UTC days, one row per active key
+openrouter-key-manager analytics
+
+# Previous complete UTC day, summarized for the workspace
+openrouter-key-manager analytics --summary --period day
+
+# Models used by matching keys over seven complete UTC days
+openrouter-key-manager analytics \
+  --models \
+  --period 7-days \
+  --pattern "*CCP555*"
+
+# Export the previous completed hour as CSV
+openrouter-key-manager analytics \
+  --period hour \
+  --include-disabled \
+  --format csv \
+  --output hourly-analytics.csv
+```
+
+Every view includes requests, total spend, total/prompt/completion/reasoning/
+cached tokens, cache hit rate, and blended cost per million tokens. Cache hit
+rate is cached tokens divided by prompt tokens; blended cost is total spend
+divided by total tokens, multiplied by one million. A zero denominator produces
+zero.
+
+The command uses OpenRouter's
+[analytics query API](https://openrouter.ai/docs/api/api-reference/analytics/query-analytics-data),
+not the older fixed-window activity endpoint. If OpenRouter reports warnings or
+truncation, the command prints a warning to stderr and still emits the available
+data.
+
+For advanced library queries outside this curated interface:
+
+```typescript
+import { getAnalyticsMeta, queryAnalytics } from "openrouter-key-manager";
+
+const metadata = await getAnalyticsMeta({ provisioningKey: "your-key" });
+const raw = await queryAnalytics(
+  {
+    metrics: ["request_count", "total_usage"],
+    dimensions: ["model"],
+  },
+  { provisioningKey: "your-key" },
+);
+```
+
+See OpenRouter's
+[analytics metadata API](https://openrouter.ai/docs/api/api-reference/analytics/get-available-analytics-metrics-and-dimensions)
+for the current metric and dimension catalog.
 
 ---
 

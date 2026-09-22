@@ -17,10 +17,15 @@ const mockWorkspaces = {
   delete: vi.fn(),
 };
 
+const mockAnalytics = {
+  getAnalyticsMeta: vi.fn(),
+};
+
 vi.mock("@openrouter/sdk", () => ({
   OpenRouter: class {
     apiKeys = mockApiKeys;
     workspaces = mockWorkspaces;
+    analytics = mockAnalytics;
   },
 }));
 
@@ -573,6 +578,174 @@ describe("OpenRouterClient", () => {
           message: "Unexpected error: Deletion failed",
         },
       );
+    });
+  });
+
+  describe("analytics", () => {
+    test("gets analytics metadata through the SDK", async () => {
+      const metadata = {
+        dimensions: [{ name: "model", displayLabel: "Model" }],
+        granularities: [{ name: "day", displayLabel: "Day" }],
+        metrics: [
+          {
+            name: "request_count",
+            displayLabel: "Requests",
+            displayFormat: "number",
+            isRate: false,
+          },
+        ],
+        operators: [{ name: "eq", valueType: "scalar" }],
+      };
+      mockAnalytics.getAnalyticsMeta.mockResolvedValue({ data: metadata });
+
+      await expect(client.getAnalyticsMeta()).resolves.toEqual(metadata);
+    });
+
+    test("preserves dynamic analytics fields and authenticates the raw request", async () => {
+      const fetcher = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              data: [
+                {
+                  model: "openai/test",
+                  request_count: "12",
+                  future_metric: 42,
+                },
+              ],
+              metadata: {
+                query_time_ms: 17,
+                row_count: 1,
+                truncated: false,
+              },
+              cachedAt: 12345,
+              warnings: ["example warning"],
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+      const analyticsClient = new OpenRouterClient(mockProvisioningKey, {
+        fetch: fetcher,
+        serverURL: "https://example.test/api/v1/",
+      });
+
+      const result = await analyticsClient.queryAnalytics({
+        metrics: ["request_count", "future_metric"],
+        dimensions: ["model"],
+        timeRange: {
+          start: new Date("2026-01-01T00:00:00Z"),
+          end: new Date("2026-01-02T00:00:00Z"),
+        },
+      });
+
+      expect(result).toEqual({
+        data: [
+          {
+            model: "openai/test",
+            request_count: "12",
+            future_metric: 42,
+          },
+        ],
+        metadata: { queryTimeMs: 17, rowCount: 1, truncated: false },
+        cachedAt: 12345,
+        warnings: ["example warning"],
+      });
+      expect(fetcher).toHaveBeenCalledWith(
+        "https://example.test/api/v1/analytics/query",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${mockProvisioningKey}`,
+            "Content-Type": "application/json",
+          },
+        }),
+      );
+      expect(JSON.parse(fetcher.mock.calls[0][1].body as string)).toMatchObject(
+        {
+          metrics: ["request_count", "future_metric"],
+          dimensions: ["model"],
+          time_range: {
+            start: "2026-01-01T00:00:00.000Z",
+            end: "2026-01-02T00:00:00.000Z",
+          },
+        },
+      );
+    });
+
+    test("retries retryable analytics responses with backoff", async () => {
+      const fetcher = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ error: { message: "temporarily unavailable" } }),
+            { status: 500 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              data: {
+                data: [],
+                metadata: {
+                  query_time_ms: 1,
+                  row_count: 0,
+                  truncated: false,
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      const analyticsClient = new OpenRouterClient(mockProvisioningKey, {
+        fetch: fetcher,
+      });
+      const wait = vi.fn().mockResolvedValue(undefined);
+      Object.assign(analyticsClient, { wait });
+
+      await expect(
+        analyticsClient.queryAnalytics({ metrics: ["request_count"] }),
+      ).resolves.toMatchObject({ data: [] });
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(wait).toHaveBeenCalledWith(1000);
+    });
+
+    test("converts analytics API and timeout failures to ApiError", async () => {
+      const forbiddenClient = new OpenRouterClient(mockProvisioningKey, {
+        fetch: vi
+          .fn()
+          .mockResolvedValue(
+            new Response(
+              JSON.stringify({ error: { message: "Management key required" } }),
+              { status: 403 },
+            ),
+          ),
+      });
+
+      await expect(
+        forbiddenClient.queryAnalytics({ metrics: ["request_count"] }),
+      ).rejects.toMatchObject({
+        name: "ApiError",
+        statusCode: 403,
+        message: "Forbidden: Management key required",
+      });
+
+      const timeout = new Error("timed out");
+      timeout.name = "TimeoutError";
+      const timeoutClient = new OpenRouterClient(mockProvisioningKey, {
+        fetch: vi.fn().mockRejectedValue(timeout),
+      });
+      Object.assign(timeoutClient, {
+        wait: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(
+        timeoutClient.queryAnalytics({ metrics: ["request_count"] }),
+      ).rejects.toMatchObject({
+        name: "ApiError",
+        statusCode: 408,
+        message: "Request timeout",
+      });
     });
   });
 });
