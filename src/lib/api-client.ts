@@ -320,43 +320,13 @@ export class OpenRouterClient {
   async listKeys(includeDisabled: boolean = false): Promise<ListData[]> {
     try {
       const allKeys: ListData[] = [];
-      const seenHashes = new Set<string>();
-      let offset = 0;
+      const response = await this.client.apiKeys.list({
+        includeDisabled,
+        workspaceId: this.workspaceId,
+      });
 
-      // TODO: switch to proper pagination once https://github.com/OpenRouterTeam/typescript-sdk/issues/958 lands
-      while (true) {
-        const response = await this.client.apiKeys.list({
-          includeDisabled,
-          offset,
-          workspaceId: this.workspaceId,
-        });
-
-        if (response.data.length === 0) {
-          break;
-        }
-
-        let newItems = 0;
-
-        for (const key of response.data) {
-          if (seenHashes.has(key.hash)) {
-            continue;
-          }
-
-          seenHashes.add(key.hash);
-          allKeys.push(key);
-          newItems += 1;
-        }
-
-        if (newItems === 0) {
-          if (this.verbose) {
-            console.warn(
-              "API key pagination made no progress; stopping to avoid an infinite loop.",
-            );
-          }
-          break;
-        }
-
-        offset += response.data.length;
+      for await (const page of response) {
+        allKeys.push(...page.result.data);
       }
 
       return allKeys;

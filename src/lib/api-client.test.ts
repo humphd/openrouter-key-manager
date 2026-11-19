@@ -29,7 +29,7 @@ vi.mock("@openrouter/sdk", () => ({
   },
 }));
 
-function workspacePages(...pages: unknown[][]) {
+function pages(...pages: unknown[][]) {
   return {
     async *[Symbol.asyncIterator]() {
       for (const data of pages) {
@@ -130,112 +130,96 @@ describe("OpenRouterClient", () => {
 
   describe("listKeys", () => {
     test("lists keys without disabled keys", async () => {
-      const mockResponse = {
-        data: [
-          {
-            hash: "hash-1",
-            name: "key1",
-            label: "",
-            disabled: false,
-            usage: 5.5,
-            usageDaily: 1.0,
-            usageWeekly: 3.0,
-            usageMonthly: 5.5,
-            limit: 10,
-            limitRemaining: 4.5,
-            createdAt: "2025-01-15T00:00:00Z",
-            updatedAt: null,
-          },
-          {
-            hash: "hash-2",
-            name: "key2",
-            label: "",
-            disabled: false,
-            usage: 2.0,
-            usageDaily: 0.5,
-            usageWeekly: 1.5,
-            usageMonthly: 2.0,
-            limit: 15,
-            limitRemaining: 13.0,
-            createdAt: "2025-01-14T00:00:00Z",
-            updatedAt: null,
-          },
-        ],
+      const firstKey = {
+        hash: "hash-1",
+        name: "key1",
+        label: "",
+        disabled: false,
+        usage: 5.5,
+        usageDaily: 1.0,
+        usageWeekly: 3.0,
+        usageMonthly: 5.5,
+        limit: 10,
+        limitRemaining: 4.5,
+        createdAt: "2025-01-15T00:00:00Z",
+        updatedAt: null,
+      };
+      const secondKey = {
+        hash: "hash-2",
+        name: "key2",
+        label: "",
+        disabled: false,
+        usage: 2.0,
+        usageDaily: 0.5,
+        usageWeekly: 1.5,
+        usageMonthly: 2.0,
+        limit: 15,
+        limitRemaining: 13.0,
+        createdAt: "2025-01-14T00:00:00Z",
+        updatedAt: null,
       };
 
-      mockApiKeys.list
-        .mockResolvedValueOnce(mockResponse)
-        .mockResolvedValueOnce({ data: [] });
+      mockApiKeys.list.mockResolvedValue(pages([firstKey, secondKey]));
 
       const result = await client.listKeys(false);
 
       expect(result).toHaveLength(2);
       expect(result[0].hash).toBe("hash-1");
-      expect(mockApiKeys.list).toHaveBeenNthCalledWith(1, {
+      expect(mockApiKeys.list).toHaveBeenCalledWith({
         includeDisabled: false,
-        offset: 0,
-      });
-      expect(mockApiKeys.list).toHaveBeenNthCalledWith(2, {
-        includeDisabled: false,
-        offset: 2,
+        workspaceId: undefined,
       });
     });
 
     test("lists keys with disabled keys", async () => {
-      mockApiKeys.list.mockResolvedValue({ data: [] });
+      mockApiKeys.list.mockResolvedValue(pages([]));
 
       await client.listKeys(true);
 
       expect(mockApiKeys.list).toHaveBeenCalledWith({
         includeDisabled: true,
-        offset: 0,
+        workspaceId: undefined,
       });
     });
 
-    test("deduplicates overlapping pages and stops when pagination makes no progress", async () => {
-      const firstPage = {
-        data: [
-          {
-            hash: "hash-1",
-            name: "key1",
-            label: "",
-            disabled: false,
-            usage: 5.5,
-            usageDaily: 1.0,
-            usageWeekly: 3.0,
-            usageMonthly: 5.5,
-            limit: 10,
-            limitRemaining: 4.5,
-            createdAt: "2025-01-15T00:00:00Z",
-            updatedAt: null,
-          },
-        ],
+    test("lists keys across all pages", async () => {
+      const firstKey = {
+        hash: "hash-1",
+        name: "key1",
+        label: "",
+        disabled: false,
+        usage: 5.5,
+        usageDaily: 1.0,
+        usageWeekly: 3.0,
+        usageMonthly: 5.5,
+        limit: 10,
+        limitRemaining: 4.5,
+        createdAt: "2025-01-15T00:00:00Z",
+        updatedAt: null,
+      };
+      const secondKey = {
+        hash: "hash-2",
+        name: "key2",
+        label: "",
+        disabled: false,
+        usage: 2.0,
+        usageDaily: 0.5,
+        usageWeekly: 1.5,
+        usageMonthly: 2.0,
+        limit: 15,
+        limitRemaining: 13.0,
+        createdAt: "2025-01-14T00:00:00Z",
+        updatedAt: null,
       };
 
-      mockApiKeys.list
-        .mockResolvedValueOnce(firstPage)
-        .mockResolvedValueOnce(firstPage);
+      mockApiKeys.list.mockResolvedValue(pages([firstKey], [secondKey]));
 
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const verboseClient = new OpenRouterClient(mockProvisioningKey, {
-        verbose: true,
-      });
+      const result = await client.listKeys(false);
 
-      const result = await verboseClient.listKeys(false);
-
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
       expect(result[0].hash).toBe("hash-1");
-      expect(mockApiKeys.list).toHaveBeenNthCalledWith(1, {
-        includeDisabled: false,
-        offset: 0,
-      });
-      expect(mockApiKeys.list).toHaveBeenNthCalledWith(2, {
-        includeDisabled: false,
-        offset: 1,
-      });
-      expect(warnSpy).toHaveBeenCalledWith(
-        "API key pagination made no progress; stopping to avoid an infinite loop.",
-      );
+      expect(result[1].hash).toBe("hash-2");
+      expect(mockApiKeys.list).toHaveBeenCalledOnce();
     });
   });
 
@@ -319,8 +303,8 @@ describe("OpenRouterClient", () => {
 
   describe("deleteKey", () => {
     test("deletes a key by name", async () => {
-      const mockListResponse = {
-        data: [
+      mockApiKeys.list.mockResolvedValue(
+        pages([
           {
             hash: "hash-abc",
             name: "test@example.com",
@@ -333,29 +317,21 @@ describe("OpenRouterClient", () => {
             createdAt: "2025-01-15T00:00:00Z",
             updatedAt: null,
           },
-        ],
-      };
-
-      mockApiKeys.list
-        .mockResolvedValueOnce(mockListResponse)
-        .mockResolvedValueOnce({ data: [] });
+        ]),
+      );
       mockApiKeys.delete.mockResolvedValueOnce({});
 
       await client.deleteKey("test@example.com");
 
-      expect(mockApiKeys.list).toHaveBeenNthCalledWith(1, {
+      expect(mockApiKeys.list).toHaveBeenCalledWith({
         includeDisabled: false,
-        offset: 0,
-      });
-      expect(mockApiKeys.list).toHaveBeenNthCalledWith(2, {
-        includeDisabled: false,
-        offset: 1,
+        workspaceId: undefined,
       });
       expect(mockApiKeys.delete).toHaveBeenCalledWith({ hash: "hash-abc" });
     });
 
     test("throws error if key not found", async () => {
-      mockApiKeys.list.mockResolvedValue({ data: [] });
+      mockApiKeys.list.mockResolvedValue(pages([]));
 
       await expect(client.deleteKey("nonexistent@example.com")).rejects.toThrow(
         ApiError,
@@ -380,7 +356,7 @@ describe("OpenRouterClient", () => {
       };
 
       mockWorkspaces.list.mockResolvedValue(
-        workspacePages([firstWorkspace], [secondWorkspace]),
+        pages([firstWorkspace], [secondWorkspace]),
       );
 
       const result = await client.listWorkspaces();
@@ -391,7 +367,7 @@ describe("OpenRouterClient", () => {
     });
 
     test("returns an empty array when no workspaces exist", async () => {
-      mockWorkspaces.list.mockResolvedValue(workspacePages([]));
+      mockWorkspaces.list.mockResolvedValue(pages([]));
 
       await expect(client.listWorkspaces()).resolves.toEqual([]);
     });
@@ -416,9 +392,7 @@ describe("OpenRouterClient", () => {
 
       client = new OpenRouterClient(mockProvisioningKey, { workspace });
 
-      mockApiKeys.list.mockResolvedValue({
-        data: [],
-      });
+      mockApiKeys.list.mockResolvedValue(pages([]));
 
       await client.listKeys(false);
 
@@ -430,9 +404,7 @@ describe("OpenRouterClient", () => {
     });
 
     test("omits workspace ID for the default workspace", async () => {
-      mockApiKeys.list.mockResolvedValue({
-        data: [],
-      });
+      mockApiKeys.list.mockResolvedValue(pages([]));
 
       await client.listKeys(false);
 
